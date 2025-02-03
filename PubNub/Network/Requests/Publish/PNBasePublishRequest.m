@@ -1,68 +1,49 @@
-/**
- * @author Serhii Mamontov
- * @version 4.15.0
- * @since 4.15.0
- * @copyright © 2010-2020 PubNub, Inc.
- */
 #import "PNBasePublishRequest+Private.h"
-#import "PNRequest+Private.h"
+#import "PNBaseRequest+Private.h"
+#import "PNFunctions.h"
 #import "PNHelpers.h"
+#import "PNError.h"
 #import "PNAES.h"
 
 
 NS_ASSUME_NONNULL_BEGIN
 
-#pragma mark Protected interface declaration
+#pragma mark Private interface declaration
 
+/// General request for all `Publish` API endpoints private extension.
 @interface PNBasePublishRequest ()
 
 
-#pragma mark - Information
+#pragma mark - Properties
 
-/**
- * @brief Whether message should be encrypted using random initialization vector or not.
- *
- * @since 4.16.0
- */
-@property (nonatomic, assign, getter = shouldUseRandomInitializationVector) BOOL useRandomInitializationVector;
+/// Crypto module for data processing.
+///
+/// **PubNub** client uses this instance to _encrypt_ and _decrypt_ data that has been sent and received from the
+/// **PubNub** network.
+@property(strong, nullable, nonatomic) id<PNCryptoProvider> cryptoModule;
 
-/**
- * @brief Whether message should be replicated across the PubNub Real-Time Network and sent simultaneously to all subscribed
- * clients on a channel.
- */
-@property (nonatomic, assign, getter = shouldReplicate) BOOL replicate;
+/// Whether message should be compressed before sending or not.
+@property(assign, nonatomic, getter = shouldCompress) BOOL compress;
 
-/**
- * @brief Whether message should be compressed before sending or not.
- */
-@property (nonatomic, assign, getter = shouldCompress) BOOL compress;
+/// Serialized `NSDictionary` with values which should be used by **PubNub** service to filter messages.
+@property(strong, nullable, nonatomic) NSString *preparedMetadata;
 
-/**
- * @brief Dictionary with payloads for different vendors (Apple with "apns" key and Google with "gcm").
- */
-@property (nonatomic, nullable, strong) NSDictionary *payloads;
+/// Dictionary with payloads for different vendors (Apple with `'apns'` key and Google with `'gcm'`).
+@property(strong, nullable, nonatomic) NSDictionary *payloads;
 
-/**
- * @brief Message which has been prepared for publish.
- *
- * @discussion Depending from request configuration this object may store encrypted message with mobile push payloads.
- */
-@property (nonatomic, nullable, strong) id preparedMessage;
+/// Message which has been prepared for publish.
+///
+/// Depending from request configuration this object may store encrypted message with mobile push payloads.
+@property(strong, nullable, nonatomic) NSString *preparedMessage;
 
-/**
- * @brief Key which should be used to encrypt message.
- */
-@property (nonatomic, nullable, copy) NSString *cipherKey;
+/// Publish request sequence number.
+@property(assign, nonatomic) NSUInteger sequenceNumber;
 
-/**
- * @brief Publish request sequence number.
- */
-@property (nonatomic, assign) NSUInteger sequenceNumber;
+/// Request post body.
+@property(strong, nullable, nonatomic) NSData *body;
 
-/**
- * @brief Name of channel to which message should be published.
- */
-@property (nonatomic, copy) NSString *channel;
+/// Name of channel to which message should be published.
+@property(copy, nonatomic) NSString *channel;
 
 #pragma mark -
 
@@ -77,93 +58,44 @@ NS_ASSUME_NONNULL_END
 @implementation PNBasePublishRequest
 
 
-#pragma mark - Information
+#pragma mark - Properties
 
-- (BOOL)returnsResponse {
-    return NO;
+- (TransportMethod)httpMethod {
+    return self.shouldCompress ? TransportPOSTMethod : TransportGETMethod;
 }
 
-- (NSString *)httpMethod {
-    return self.shouldCompress ? @"POST" : @"GET";
+- (BOOL)shouldCompressBody {
+    return self.shouldCompress;
 }
 
-- (PNRequestParameters *)requestParameters {
-    PNRequestParameters *parameters = [super requestParameters];
-
-    if (self.parametersError) {
-        return parameters;
-    }
-
-    if (self.channel.length) {
-        [parameters addPathComponent:[PNString percentEscapedString:self.channel]
-                      forPlaceholder:@"{channel}"];
-    } else {
-        self.parametersError = [self missingParameterError:@"channel" forObjectRequest:@"Request"];
-    }
+- (NSDictionary *)headers {
+    NSMutableDictionary *headers = [([super headers] ?: @{}) mutableCopy];
     
+    if (self.httpMethod == TransportPOSTMethod) headers[@"Content-Type"] = @"application/json";
     
-    if (!self.shouldStore) {
-        [parameters addQueryParameter:@"0" forFieldName:@"store"];
-    }
-    
-    if (self.ttl > 0) {
-        [parameters addQueryParameter:@(self.ttl).stringValue forFieldName:@"ttl"];
-    }
-    
-    if (!self.shouldReplicate) {
-        [parameters addQueryParameter:@"true" forFieldName:@"norep"];
-    }
-    
-    parameters.POSTBodyCompressed = self.shouldCompress;
-    
-    NSString *messageForPublish = @"";
-    messageForPublish = [self JSONFromMessage:self.preFormattedMessage
-                 withPushNotificationsPayload:self.payloads];
-    
-    if (!self.parametersError && !messageForPublish.length) {
-        self.parametersError = [self missingParameterError:@"message" forObjectRequest:@"Request"];
-    }
-    
-    if (!self.parametersError) {
-        if (!self.shouldCompress) {
-            messageForPublish = [PNString percentEscapedString:messageForPublish];
-        } else {
-            messageForPublish = @"";
-        }
-        
-        [parameters addPathComponent:messageForPublish forPlaceholder:@"{message}"];
-    }
-    
-    if (self.metadata) {
-        NSError *parametersError = nil;
-        NSString *metadataForPublish = [PNJSON JSONStringFrom:self.metadata
-                                                    withError:&parametersError];
-        
-        if (!parametersError && metadataForPublish.length) {
-            [parameters addQueryParameter:[PNString percentEscapedString:metadataForPublish]
-                             forFieldName:@"meta"];
-        } else if (parametersError) {
-            self.parametersError = parametersError;
-        }
-    }
-    
-    [parameters addQueryParameter:@(self.sequenceNumber).stringValue forFieldName:@"seqn"];
-
-    return parameters;
+    return headers;
 }
 
-- (NSData *)bodyData {
-    NSString *messageForPublish = [self JSONFromMessage:self.preFormattedMessage
-                           withPushNotificationsPayload:self.payloads];
+- (NSDictionary *)query {
+    NSMutableDictionary *query = [NSMutableDictionary new];
+
+    if (self.customMessageType.length) query[@"custom_message_type"] = self.customMessageType;
+    if (self.preparedMetadata.length) query[@"meta"] = self.preparedMetadata;
+    if (self.ttl > 0) query[@"ttl"] = @(self.ttl).stringValue;
+    if (!self.shouldReplicate) query[@"norep"] = @"true";
+    if (!self.shouldStore) query[@"store"] = @"0";
+    query[@"seqn"] = @(self.sequenceNumber);
     
-    if (self.parametersError) {
-        return nil;
-    }
-
-    NSData *messageData = [messageForPublish dataUsingEncoding:NSUTF8StringEncoding];
-
-    return [PNGZIP GZIPDeflatedData:messageData] ?: [@"" dataUsingEncoding:NSUTF8StringEncoding];
+    if (self.arbitraryQueryParameters.count) [query addEntriesFromDictionary:self.arbitraryQueryParameters];
+    
+    return query.count ? query : nil;
 }
+
+- (NSData *)body {
+    if (self.httpMethod == TransportPOSTMethod) return [self.preparedMessage dataUsingEncoding:NSUTF8StringEncoding];
+    return nil;
+}
+
 
 - (id)preFormattedMessage {
     return self.message;
@@ -175,8 +107,8 @@ NS_ASSUME_NONNULL_END
 -  (instancetype)initWithChannel:(NSString *)channel {
     if ((self = [super init])) {
         _channel = [channel copy];
-        self.replicate = YES;
-        self.store = YES;
+        _replicate = YES;
+        _store = YES;
     }
     
     return self;
@@ -189,55 +121,92 @@ NS_ASSUME_NONNULL_END
 }
 
 
-#pragma mark - Misc
+#pragma mark - Prepare
 
-- (NSString *)JSONFromMessage:(id)message withPushNotificationsPayload:(NSDictionary *)payloads {
-    if (self.preparedMessage) {
-        return self.preparedMessage;
-    }
+- (PNError *)validate {
+    if (self.channel.length == 0) return [self missingParameterError:@"channel" forObjectRequest:@"Request"];
     
-    NSError *parametersError = nil;
-    NSString *messageForPublish = [PNJSON JSONStringFrom:message withError:&parametersError];
+    NSString *preFormattedMessage = self.preFormattedMessage;
+    NSString *messageForPublish = @"";
+    NSError *error = nil;
+
+    messageForPublish = [PNJSON JSONStringFrom:preFormattedMessage withError:&error];
     BOOL isMessageEncrypted = NO;
 
-    if (!parametersError && self.cipherKey.length) {
-        NSString *encryptedMessage = [self encryptedMessage:messageForPublish
-                                              withCipherKey:self.cipherKey
-                                 randomInitializationVector:self.shouldUseRandomInitializationVector
-                                                      error:&parametersError];
+    if (error) {
+        NSDictionary *userInfo = PNErrorUserInfo(
+            @"Request parameters error",
+            @"Message serialization did fail",
+            @"Ensure that only JSON-compatible values used in 'message'.",
+            error
+        );
         
-        if (!parametersError) {
+        return [PNError errorWithDomain:PNAPIErrorDomain code:PNAPIErrorUnacceptableParameters userInfo:userInfo];
+    }
+    
+    if (self.cryptoModule) {
+        NSString *encryptedMessage = [self encryptedMessage:messageForPublish error:&error];
+        
+        if (!error) {
             messageForPublish = [encryptedMessage copy];
             isMessageEncrypted = YES;
-        } else {
-            messageForPublish = nil;
+        } else if (error) {
+            NSDictionary *userInfo = PNErrorUserInfo(
+                @"Request parameters error",
+                @"Message encryption did fail.",
+                nil,
+                error
+            );
+
+            return [PNError errorWithDomain:PNAPIErrorDomain code:PNAPIErrorUnacceptableParameters userInfo:userInfo];
         }
     }
     
-    if (!parametersError && payloads.count) {
-        id targetMessage = isMessageEncrypted ? messageForPublish : message;
-        NSDictionary *mergedData = [self mergedMessage:targetMessage withMobilePushPayload:payloads];
-        messageForPublish = [PNJSON JSONStringFrom:mergedData withError:&parametersError];
+    if (self.payloads.count) {
+        id targetMessage = isMessageEncrypted ? messageForPublish : preFormattedMessage;
+        NSDictionary *mergedData = [self mergedMessage:targetMessage withMobilePushPayload:self.payloads];
+        messageForPublish = [PNJSON JSONStringFrom:mergedData withError:&error];
+        
+        if (error) {
+            NSDictionary *userInfo = PNErrorUserInfo(
+                @"Request parameters error",
+                @"Message merge with push notification payload did fail",
+                @"Ensure that only JSON-compatible values used in message.",
+                error
+            );
+            
+            return [PNError errorWithDomain:PNAPIErrorDomain code:PNAPIErrorUnacceptableParameters userInfo:userInfo];
+        }
     }
     
-    if (parametersError) {
-        self.parametersError = parametersError;
+    if (messageForPublish.length == 0) return [self missingParameterError:@"message" forObjectRequest:@"Request"];
+    else self.preparedMessage = messageForPublish;
+
+    if (self.metadata) {
+        NSString *metadataForPublish = [PNJSON JSONStringFrom:self.metadata withError:&error];
+        if (!error && metadataForPublish.length) self.preparedMetadata = [metadataForPublish copy];
+        else if (error) {
+            NSDictionary *userInfo = PNErrorUserInfo(
+                @"Request parameters error",
+                @"Metadata serialization did fail",
+                @"Ensure that only JSON-compatible values used in 'metadata'.",
+                error
+            );
+
+            return [PNError errorWithDomain:PNAPIErrorDomain code:PNAPIErrorUnacceptableParameters userInfo:userInfo];
+        }
     }
-    
-    self.preparedMessage = messageForPublish;
-    
-    return messageForPublish;
+
+    return nil;
 }
 
 
+#pragma mark - Misc
+
 - (NSDictionary<NSString *, id> *)mergedMessage:(id)message
                           withMobilePushPayload:(NSDictionary<NSString *, id> *)payloads {
-
     NSDictionary *originalMessage = message ?: @{};
-    
-    if (message && ![message isKindOfClass:[NSDictionary class]]) {
-        originalMessage = @{ @"pn_other": message };
-    }
+    if (message && ![message isKindOfClass:[NSDictionary class]]) originalMessage = @{ @"pn_other": message };
 
     NSMutableDictionary *mergedMessage = [originalMessage mutableCopy];
 
@@ -260,29 +229,17 @@ NS_ASSUME_NONNULL_END
     return [mergedMessage copy];
 }
 
-- (NSString *)encryptedMessage:(NSString *)message
-                 withCipherKey:(NSString *)key
-    randomInitializationVector:(BOOL)randomIV
-                         error:(NSError **)error {
-    
+- (NSString *)encryptedMessage:(NSString *)message error:(NSError **)error {
     NSString *encryptedMessage = message;
+    NSData *JSONData = [message dataUsingEncoding:NSUTF8StringEncoding];
+    PNResult<NSData *> *encryptionResult = [self.cryptoModule encryptData:JSONData];
 
-    if (key.length) {
-        NSData *JSONData = [message dataUsingEncoding:NSUTF8StringEncoding];
-        NSString *JSONString = [PNAES encrypt:JSONData
-                                 withRandomIV:randomIV
-                                    cipherKey:key
-                                     andError:error];
-
-        if (*error == nil) {
-            /**
-             * PNAES encryption output is NSString which is valid JSON object from PubNub service perspective, but it should be
-             * decorated with " (this done internally by helper when it need to create JSON string).
-             */
-            encryptedMessage = [PNJSON JSONStringFrom:JSONString withError:error];
-        } else {
-            encryptedMessage = nil;
-        }
+    if (encryptionResult.isError) {
+        *error = encryptionResult.error;
+        encryptedMessage = nil;
+    } else {
+        NSString *base64 = [encryptionResult.data base64EncodedStringWithOptions:(NSDataBase64EncodingOptions)0];
+        encryptedMessage = [PNJSON JSONStringFrom:base64 withError:error];
     }
     
     return encryptedMessage;

@@ -1,12 +1,10 @@
-# PubNub 4.16.2 for iOS 9+
+# PubNub 5.7.1 for iOS 9+
 [![Twitter](https://img.shields.io/badge/twitter-%40PubNub-blue.svg?style=flat)](https://twitter.com/PubNub)
 [![Twitter Releases](https://img.shields.io/badge/twitter-%40PubNubRelease-blue.svg?style=flat)](https://twitter.com/PubNubRelease)
-[![License](https://img.shields.io/github/license/pubnub/objective-c.svg?style=flat)](https://img.shields.io/github/license/pubnub/objective-c.svg)
 [![CocoaPods Compatible](https://img.shields.io/cocoapods/v/PubNub.svg?style=flat)](https://img.shields.io/cocoapods/v/PubNub.svg)
 [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 [![Platform](https://img.shields.io/cocoapods/p/PubNub.svg?style=flat)](https://img.shields.io/cocoapods/p/PubNub.svg)
 [![Docs Coverage](https://img.shields.io/cocoapods/metrics/doc-percent/PubNub.svg?style=flat)](https://img.shields.io/cocoapods/metrics/doc-percent/PubNub.svg)
-[![Build Status](https://travis-ci.com/pubnub/objective-c.svg?branch=master)](https://travis-ci.com/pubnub/objective-c)
 
 This is the official PubNub Objective-C SDK repository.
 
@@ -192,10 +190,15 @@ You will need the publish and subscribe keys to authenticate your app. Get your 
 
 ## Documentation
 
-* [Build your first realtime Objective-C app with PubNub](https://www.pubnub.com/docs/platform/quickstarts/objectivec)
 * [API reference for Objective-C (iOS)](https://www.pubnub.com/docs/ios-objective-c/pubnub-objective-c-sdk)
 * [API reference for Objective-C (Cocoa)](https://www.pubnub.com/docs/cocoa-objective-c/pubnub-objective-c-sdk)
 
 ## Support
 
 If you **need help** or have a **general question**, contact support@pubnub.com.
+
+## License
+
+The PubNub Swift SDK is released under the `PubNub Software Development Kit License`.
+
+[See LICENSE](https://github.com/pubnub/objective-c/blob/master/LICENSE) for details.

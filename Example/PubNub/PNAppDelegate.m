@@ -77,7 +77,7 @@
 - (void)pubNubInit {
 
     // Initialize PubNub client.
-    self.myConfig = [PNConfiguration configurationWithPublishKey:_pubKey subscribeKey:_subKey];
+    self.myConfig = [PNConfiguration configurationWithPublishKey:_pubKey subscribeKey:_subKey userID:@"pubnub"];
 
     [self updateClientConfiguration];
     [self printClientConfiguration];
@@ -91,6 +91,7 @@
     self.client.logger.maximumLogFileSize = (10 * 1024 * 1024);
     self.client.logger.maximumNumberOfLogFiles = 10;
     [self.client.logger setLogLevel:PNVerboseLogLevel];
+
 
     // Bind didReceiveMessage, didReceiveStatus, and didReceivePresenceEvent 'listeners' to this delegate
     // just be sure the target has implemented the PNObjectEventListener extension
@@ -594,10 +595,8 @@
         NSLog(@"Decryption error. Be sure the data is encrypted and/or encrypted with the correct cipher key.");
         NSLog(@"You can find the raw data returned from the server in the status.data attribute: %@", status.associatedObject);
         if (status.operation == PNSubscribeOperation) {
-            
-            NSLog(@"Decryption failed for message from channel: %@\nmessage: %@",
-                  ((PNMessageData *)status.associatedObject).channel, 
-                  ((PNMessageData *)status.associatedObject).message);
+            PNSubscribeMessageEventData *data = status.associatedObject;
+            NSLog(@"Decryption failed for message from channel: %@\nmessage: %@", data.channel, data.message);
         }
     }
     else if (status.category == PNMalformedFilterExpressionCategory) {

@@ -12,7 +12,12 @@
 #pragma mark Defines
 
 #define WRITING_CASSETTES 0
+#define PUBNUB_DISABLE_LOGGER
+#ifndef PUBNUB_DISABLE_LOGGER
+#define PUBNUB_LOGGER_ENABLED YES
+#else
 #define PUBNUB_LOGGER_ENABLED NO
+#endif
 
 
 #pragma mark - Types and structures
@@ -283,6 +288,9 @@ NS_ASSUME_NONNULL_END
 
 @implementation PNRecordableTestCase
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 
 #pragma mark - Information
 
@@ -487,7 +495,7 @@ NS_ASSUME_NONNULL_END
 
 - (void)updateVCRConfigurationFromDefaultConfiguration:(YHVConfiguration *)configuration {
 #if WRITING_CASSETTES
-    NSString *cassettesPath = @"<path to the project>/Tests/Support Files/Fixtures";
+    NSString *cassettesPath = @"/Users/sergey/Documents/Develop/Objective-C/PubNub SDK (public)/Tests/Support Files/Fixtures";
     NSString *cassetteName = [NSStringFromClass([self class]) stringByAppendingPathExtension:@"bundle"];
     configuration.cassettesPath = [cassettesPath stringByAppendingPathComponent:cassetteName];
 #endif // WRITING_CASSETTES
@@ -749,6 +757,7 @@ NS_ASSUME_NONNULL_END
 - (PNConfiguration *)defaultConfiguration {
     NSString *subscribeKey = self.subscribeKey;
     NSString *publishKey = self.publishKey;
+    NSString *uuid = [self uuidForUser:[self pubNubUUIDForTestCaseWithName:self.name]];
     
     if ([self usePAMEnabledKeysForTestCaseWithName:self.name]) {
         subscribeKey = self.pamSubscribeKey;
@@ -756,10 +765,14 @@ NS_ASSUME_NONNULL_END
     }
     
     PNConfiguration *configuration = [PNConfiguration configurationWithPublishKey:publishKey
-                                                                     subscribeKey:subscribeKey];
-    configuration.uuid = [self uuidForUser:[self pubNubUUIDForTestCaseWithName:self.name]];
+                                                                     subscribeKey:subscribeKey
+                                                                           userID:uuid];
     configuration.authKey = [self pubNubAuthForTestCaseWithName:self.name];
-    
+
+    // TODO: REMOVE
+//    configuration.origin = @"ingress-tcp-pub.az1.pdx1.aws.int.ps.pn";
+//    configuration.TLSEnabled = false;
+
     return configuration;
 }
 
@@ -774,19 +787,21 @@ NS_ASSUME_NONNULL_END
 
 - (PubNub *)createPubNubForUser:(NSString *)user {
     PNConfiguration *configuration = [self configurationForTestCaseWithName:self.name];
-    
+
     return [self createPubNubForUser:user withConfiguration:configuration];
 }
 
 - (PubNub *)createPubNubForUser:(NSString *)user withConfiguration:(PNConfiguration *)configuration {
     dispatch_queue_t callbackQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    configuration.uuid = [self uuidForUser:user];
-    
+    configuration.userID = [self uuidForUser:user];
+
     PubNub *client = [PubNub clientWithConfiguration:configuration callbackQueue:callbackQueue];
+#ifndef PUBNUB_DISABLE_LOGGER
     client.logger.enabled = PUBNUB_LOGGER_ENABLED;
     client.logger.logLevel  = PUBNUB_LOGGER_ENABLED ? PNVerboseLogLevel : PNSilentLogLevel;
     client.logger.writeToConsole = PUBNUB_LOGGER_ENABLED;
     client.logger.writeToFile = PUBNUB_LOGGER_ENABLED;
+#endif // PUBNUB_DISABLE_LOGGER
     [client addListener:self];
     
     if (!self.clients[user]) {
@@ -817,7 +832,7 @@ NS_ASSUME_NONNULL_END
 - (void)completePubNubConfiguration:(PubNub *)client {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
-    NSString *uuid = client.currentConfiguration.uuid;
+    NSString *uuid = client.currentConfiguration.userID;
 #pragma clang diagnostic pop
 }
 
@@ -949,7 +964,15 @@ NS_ASSUME_NONNULL_END
 
 #pragma mark - Publish
 
-- (NSArray<NSDictionary *> *)publishMessages:(NSUInteger)messagesCount toChannel:(NSString *)channel
+- (NSArray<NSDictionary *> *)publishMessages:(NSUInteger)messagesCount
+                                   toChannel:(NSString *)channel
+                                 usingClient:(PubNub *)client {
+    return [self publishMessages:messagesCount toChannel:channel withCustomMessageType:nil usingClient:client];
+}
+
+- (NSArray<NSDictionary *> *)publishMessages:(NSUInteger)messagesCount
+                                   toChannel:(NSString *)channel
+                       withCustomMessageType:(NSString *)customMessageType
                                  usingClient:(PubNub *)client {
     
     NSMutableArray *messages = [NSMutableArray new];
@@ -965,7 +988,8 @@ NS_ASSUME_NONNULL_END
             };
             
             PNPublishAPICallBuilder *builder = client.publish().message(message).channel(channel);
-            
+            if (customMessageType) builder = builder.customMessageType(customMessageType);
+
             if (messageIdx % 2 == 0) {
                 metadata = @{ @"time": message[@"time"] };
                 builder = builder.metadata(metadata);
@@ -1006,11 +1030,26 @@ NS_ASSUME_NONNULL_END
     NSMutableDictionary *channelMessages = [NSMutableDictionary new];
     
     for (NSString *channel in channels) {
-        channelMessages[channel] = [self publishMessages:messagesCount
-                                               toChannel:channel
-                                             usingClient:client];
+        channelMessages[channel] = [self publishMessages:messagesCount toChannel:channel usingClient:client];
     }
     
+    return channelMessages;
+}
+
+- (NSDictionary<NSString *, NSArray<NSDictionary *> *> *)publishMessages:(NSUInteger)messagesCount
+                                                              toChannels:(NSArray<NSString *> *)channels
+                                                   withCustomMessageType:(NSString *)customMessageType
+                                                             usingClient:(PubNub *)client {
+
+    NSMutableDictionary *channelMessages = [NSMutableDictionary new];
+
+    for (NSString *channel in channels) {
+        channelMessages[channel] = [self publishMessages:messagesCount
+                                               toChannel:channel
+                                   withCustomMessageType:customMessageType
+                                             usingClient:client];
+    }
+
     return channelMessages;
 }
 
@@ -1163,7 +1202,7 @@ NS_ASSUME_NONNULL_END
     client = client ?: self.client;
     
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
-        [client setState:state forUUID:client.currentConfiguration.uuid onChannel:channel
+        [client setState:state forUUID:client.currentConfiguration.userID onChannel:channel
           withCompletion:^(PNClientStateUpdateStatus *status) {
             XCTAssertFalse(status.isError);
             handler();
@@ -1457,12 +1496,14 @@ NS_ASSUME_NONNULL_END
             .uuid(uuid)
             .channels(channels)
             .performWithCompletion(^(PNManageMembershipsStatus *status) {
-                XCTAssertFalse(status.isError);
-                
-                if (status.isError) {
-                    NSLog(@"'%@' UUID MEMBERSHIP REMOVE ERROR: %@\n%@",
-                          uuid, status.errorData.information,
-                          [status valueForKey:@"clientRequest"]);
+                if (YHVVCR.cassette.isNewCassette) {
+                    XCTAssertFalse(status.isError, @"Error reason: %@", status.errorData.information);
+
+                    if (status.isError) {
+                        NSLog(@"'%@' UUID MEMBERSHIP REMOVE ERROR: %@\n%@",
+                              uuid, status.errorData.information,
+                              [status valueForKey:@"clientRequest"]);
+                    }
                 }
                 
                 handler();
@@ -1494,14 +1535,16 @@ NS_ASSUME_NONNULL_END
             client.objects().removeUUIDMetadata()
                 .uuid(uuid)
                 .performWithCompletion(^(PNAcknowledgmentStatus *status) {
-                    XCTAssertFalse(status.isError);
-                    
-                    if (status.isError) {
-                        NSLog(@"'%@' UUID METADATA REMOVE ERROR: %@\n%@",
-                              uuid, status.errorData.information,
-                              [status valueForKey:@"clientRequest"]);
+                    if (YHVVCR.cassette.isNewCassette) {
+                        XCTAssertFalse(status.isError, @"Error reason: %@", status.errorData.information);
+
+                        if (status.isError) {
+                            NSLog(@"'%@' UUID METADATA REMOVE ERROR: %@\n%@",
+                                  uuid, status.errorData.information,
+                                  [status valueForKey:@"clientRequest"]);
+                        }
                     }
-                    
+
                     handler();
                 });
         }];
@@ -1751,14 +1794,16 @@ NS_ASSUME_NONNULL_END
     for (NSString *channel in channels) {
         [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
             client.objects().removeChannelMetadata(channel).performWithCompletion(^(PNAcknowledgmentStatus *status) {
-                XCTAssertFalse(status.isError);
-                
-                if (status.isError) {
-                    NSLog(@"'%@' CHANNEL METADATA REMOVE ERROR: %@\n%@",
-                          channel, status.errorData.information,
-                          [status valueForKey:@"clientRequest"]);
+                if (YHVVCR.cassette.isNewCassette) {
+                    XCTAssertFalse(status.isError, @"Error reason: %@", status.errorData.information);
+                    
+                    if (status.isError) {
+                        NSLog(@"'%@' CHANNEL METADATA REMOVE ERROR: %@\n%@",
+                              channel, status.errorData.information,
+                              [status valueForKey:@"clientRequest"]);
+                    }
                 }
-                
+
                 handler();
             });
         }];
@@ -1782,12 +1827,17 @@ NS_ASSUME_NONNULL_END
     return [self uploadFiles:count toChannel:channel withCipherKey:nil usingClient:client];
 }
 
-- (NSArray<NSDictionary *> *)uploadFiles:(NSUInteger)count toChannel:(NSString *)channel withCipherKey:(NSString *)key usingClient:(PubNub *)client {
-    
+- (NSArray<NSDictionary *> *)uploadFiles:(NSUInteger)count 
+                               toChannel:(NSString *)channel
+                           withCipherKey:(NSString *)key
+                             usingClient:(PubNub *)client {
     NSMutableArray<NSDictionary *> *files = [NSMutableArray new];
     client = client ?: self.client;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     key = key ?: client.currentConfiguration.cipherKey;
-    
+#pragma clang diagnostic pop
+
     for (NSUInteger fileIdx = 0; fileIdx < count; fileIdx++) {
         NSString *fileName = [[NSUUID UUID].UUIDString stringByAppendingPathExtension:@"txt"];
         NSMutableString *messageText = [NSMutableString stringWithString:[NSUUID UUID].UUIDString];
@@ -2083,7 +2133,7 @@ NS_ASSUME_NONNULL_END
 - (void)waitToCompleteIn:(NSTimeInterval)delay
                codeBlock:(void(^)(dispatch_block_t handler))codeBlock
               afterBlock:(void(^)(void))initialBlock {
-    
+
     dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
     __block BOOL handlerCalled = NO;
     
@@ -2093,15 +2143,15 @@ NS_ASSUME_NONNULL_END
             dispatch_semaphore_signal(semaphore);
         }
     });
-    
+
     if (initialBlock) {
         initialBlock();
     }
     
-    
+
     dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC));
     dispatch_semaphore_wait(semaphore, timeout);
-    
+
     XCTAssertTrue(handlerCalled);
 }
 
@@ -2315,7 +2365,7 @@ NS_ASSUME_NONNULL_END
         NSError *error;
         
         if (!configurationData) {
-            NSString *errorReason = @"'test-configuration.json' file not found in bundle.";
+            NSString *errorReason = @"'tests-configuration.json' file not found in bundle.";
             
             exception = [NSException exceptionWithName:@"PNTestsConfiguration"
                                                 reason:errorReason
@@ -2329,7 +2379,7 @@ NS_ASSUME_NONNULL_END
         
         
         if (!_sharedTestsConfiguration || error) {
-            NSString *errorReason = @"'test-configuration.json' file parsing error.";
+            NSString *errorReason = @"'tests-configuration.json' file parsing error.";
             NSDictionary *userInfo = error ? @{ NSUnderlyingErrorKey: error } : nil;
             
             exception = [NSException exceptionWithName:@"PNTestsConfiguration"
@@ -2365,6 +2415,8 @@ NS_ASSUME_NONNULL_END
 }
 
 #pragma mark -
+
+#pragma clang diagnostic pop
 
 
 @end

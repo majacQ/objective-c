@@ -26,14 +26,19 @@ extern NSString * const kPNPublishSequenceDataKey;
 /**
  * @brief Key under which unique user identifier will be stored persistently.
  */
-extern NSString * const kPNConfigurationUUIDKey;
+extern NSString * const kPNConfigurationUserIDKey;
 
 /**
  * @brief Options describe object's message type.
  *
  * @since 4.9.0
  */
-typedef NS_OPTIONS(NSUInteger, PNMessageType) {
+typedef NS_OPTIONS(NSInteger, PNMessageType) {
+    /**
+     @brief Type which represent presence object.
+     */
+    PNPresenceMessageType = -1,
+
     /**
      @brief Type which represent regular message object.
      */
@@ -218,9 +223,10 @@ static NSString * const PNOperationStatusClasses[57] = {
  *
  * @since 4.0.0
  */
-static NSString * const PNStatusCategoryStrings[21] = {
+static NSString * const PNStatusCategoryStrings[22] = {
     [PNUnknownCategory] = @"Unknown",
     [PNAcknowledgmentCategory] = @"Acknowledgment",
+    [PNResourceNotFoundCategory] = @"Resource Not Found",
     [PNAccessDeniedCategory] = @"Access Denied",
     [PNTimeoutCategory] = @"Timeout",
     [PNNetworkIssuesCategory] = @"Network Issues",

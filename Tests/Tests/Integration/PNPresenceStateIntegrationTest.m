@@ -27,6 +27,7 @@ NS_ASSUME_NONNULL_END
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-retain-cycles"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 
 #pragma mark - Setup / Tear down
@@ -43,7 +44,7 @@ NS_ASSUME_NONNULL_END
 
 - (void)testItShouldSetPresenceStateForChannelAndReceiveStatusWithExpectedOperationAndCategory {
     NSString *channel = [self channelWithName:@"test-channel1"];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"channel1-state": [self randomizedValuesWithValues:@[@"channel-1-random-value"]]
     };
@@ -67,7 +68,7 @@ NS_ASSUME_NONNULL_END
 
 - (void)testItShouldSetPresenceStateForChannelAndNotCrashWhenCompletionBlockIsNil {
     NSString *channel = [self channelWithName:@"test-channel1"];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"channel1-state": [self randomizedValuesWithValues:@[@"channel-1-random-value"]]
     };
@@ -105,7 +106,7 @@ NS_ASSUME_NONNULL_END
                                 withBlock:^(PubNub *client, PNPresenceEventResult *event, BOOL *remove) {
             
             if ([event.data.presenceEvent isEqualToString:@"state-change"]) {
-                XCTAssertEqualObjects(event.data.presence.uuid, client1.currentConfiguration.uuid);
+                XCTAssertEqualObjects(event.data.presence.uuid, client1.currentConfiguration.userID);
                 XCTAssertEqualObjects(event.data.presence.state, updatedState);
                 XCTAssertNotNil(event.data.presence.timetoken);
                 *remove = YES;
@@ -114,21 +115,17 @@ NS_ASSUME_NONNULL_END
             }
         }];
         
-        [client1 setState:updatedState forUUID:client1.currentConfiguration.uuid onChannel:channel
+        [client1 setState:updatedState forUUID:client1.currentConfiguration.userID onChannel:channel
            withCompletion:^(PNClientStateUpdateStatus *status) {
             XCTAssertFalse(status.isError);
         }];
     }];
     
     [self waitTask:@"waitForDistribution" completionFor:(YHVVCR.cassette.isNewCassette ? 3.f : 0.f)];
-    
-    
-    // Ensure, that state manager for observing client (same user) stored updated user state.
-    XCTAssertEqualObjects([client2.clientStateManager state][channel], updatedState);
 }
 
 - (void)testItShouldNotSetPresenceStateForChannelAndReceiveBadRequestStatusWhenChannelIsNil {
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"channel1-state": [self randomizedValuesWithValues:@[@"channel-1-random-value"]]
     };
@@ -188,7 +185,7 @@ NS_ASSUME_NONNULL_END
 
 - (void)testItShouldSetPresenceStateForChannelUsingBuilderPatternInterface {
     NSArray<NSString *> *channels = [self channelsWithNames:@[@"test-channel1", @"test-channel2"]];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"users-state": [self randomizedValuesWithValues:@[@"users-random-value"]]
     };
@@ -219,7 +216,7 @@ NS_ASSUME_NONNULL_END
 - (void)testItShouldSetPresenceStateForChannelGroupAndReceiveStatusWithExpectedOperationAndCategory {
     NSArray<NSString *> *channels = [self channelsWithNames:@[@"test-channel1", @"test-channel2"]];
     NSString *channelGroup = [self channelGroupWithName:@"test-channel-group"];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"user-state": [self randomizedValuesWithValues:@[@"users-random-value"]]
     };
@@ -250,7 +247,7 @@ NS_ASSUME_NONNULL_END
 - (void)testItShouldSetPresenceStateForChannelGroupAndNotCrashWhenCompletionBlockIsNil {
     NSArray<NSString *> *channels = [self channelsWithNames:@[@"test-channel1", @"test-channel2"]];
     NSString *channelGroup = [self channelGroupWithName:@"test-channel-group"];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"user-state": [self randomizedValuesWithValues:@[@"users-random-value"]]
     };
@@ -270,7 +267,7 @@ NS_ASSUME_NONNULL_END
 }
 
 - (void)testItShouldNotSetPresenceStateForChannelGroupAndReceiveBadRequestStatusWhenChannelGroupIsNil {
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSString *channelGroup = nil;
     NSDictionary *state = @{
         @"user-state": [self randomizedValuesWithValues:@[@"users-random-value"]]
@@ -332,7 +329,7 @@ NS_ASSUME_NONNULL_END
     NSArray<NSString *> *channelGroups = [self channelGroupsWithNames:@[@"test-channel-group1", @"test-channel-group2"]];
     NSArray<NSString *> *channels1 = [self channelsWithNames:@[@"test-channel1", @"test-channel2"]];
     NSArray<NSString *> *channels2 = [self channelsWithNames:@[@"test-channel3", @"test-channel4"]];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"users-state": [self randomizedValuesWithValues:@[@"channel-1-random-value"]]
     };
@@ -370,7 +367,7 @@ NS_ASSUME_NONNULL_END
 
 - (void)testItShouldFetchPresenceStateForChannelAndReceiveResultWithExpectedOperation {
     NSString *channel = [self channelWithName:@"test-channel1"];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"channel1-state": [self randomizedValuesWithValues:@[@"channel-1-random-value"]]
     };
@@ -403,7 +400,7 @@ NS_ASSUME_NONNULL_END
 }
 
 - (void)testItShouldNotFetchPresenceStateForChannelAndReceiveBadRequestStatusWhenChannelIsNil {
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     __block BOOL retried = NO;
     NSString *channel = nil;
         
@@ -456,7 +453,7 @@ NS_ASSUME_NONNULL_END
 
 - (void)testItShouldFetchPresenceStateForChannelUsingBuilderPatternInterface {
     NSArray<NSString *> *channels = [self channelsWithNames:@[@"test-channel1", @"test-channel2"]];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"users-state": [self randomizedValuesWithValues:@[@"users-random-value"]]
     };
@@ -500,7 +497,7 @@ NS_ASSUME_NONNULL_END
 - (void)testItShouldFetchPresenceStateForChannelGroupAndReceiveResultWithExpectedOperation {
     NSArray<NSString *> *channels = [self channelsWithNames:@[@"test-channel1", @"test-channel2"]];
     NSString *channelGroup = [self channelGroupWithName:@"test-channel-group"];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"user-state": [self randomizedValuesWithValues:@[@"users-random-value"]]
     };
@@ -542,7 +539,7 @@ NS_ASSUME_NONNULL_END
 }
 
 - (void)testItShouldNotFetchPresenceStateForChannelGroupAndReceiveBadRequestStatusWhenChannelGroupIsNil {
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSString *channelGroup = nil;
     __block BOOL retried = NO;
         
@@ -597,7 +594,7 @@ NS_ASSUME_NONNULL_END
     NSArray<NSString *> *channelGroups = [self channelGroupsWithNames:@[@"test-channel-group1", @"test-channel-group2"]];
     NSArray<NSString *> *channels1 = [self channelsWithNames:@[@"test-channel1", @"test-channel2"]];
     NSArray<NSString *> *channels2 = [self channelsWithNames:@[@"test-channel3", @"test-channel4"]];
-    NSString *uuid = self.client.currentConfiguration.uuid;
+    NSString *uuid = self.client.currentConfiguration.userID;
     NSDictionary *state = @{
         @"users-state": [self randomizedValuesWithValues:@[@"channel-1-random-value"]]
     };

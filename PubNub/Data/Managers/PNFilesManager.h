@@ -1,76 +1,40 @@
 #import <Foundation/Foundation.h>
-
-
-#pragma mark Class forward
-
-@class PNAcknowledgmentStatus, PubNub;
+#import <PubNub/PNCryptoProvider.h>
+#import <PubNub/PubNub+Core.h>
 
 
 NS_ASSUME_NONNULL_BEGIN
 
-#pragma mark - Interface declaration
+#pragma mark Interface declaration
 
-/**
- * @brief Files / data upload / download manager.
- *
- * @discussion Manager able to upload / download regular data or make encryption / decryption if
- * required.
- *
- * @author Sergey Mamontov
- * @version 4.15.0
- * @since 4.15.0
- * @copyright © 2010-2020 PubNub, Inc.
- */
+/// Files manager.
+///
+/// Manager able to upload / download regular data or make encryption / decryption if required.
 @interface PNFilesManager : NSObject
 
 
-#pragma mark - Initialization and Configuration
+#pragma mark - Initialization and configuration
 
-/**
- * @brief Create and configure files manager.
- *
- * @param client \b PubNub client for which files manager should be created.
- *
- * @return Configured and ready to use client files manager.
- */
+/// Create file manager instance.
+///
+/// - Parameter client: **PubNub** client for which files manager should be created.
+/// - Returns: Initialized file manager instance.
 + (instancetype)filesManagerForClient:(PubNub *)client;
-
-
-#pragma mark - Upload data
-
-/**
- * @brief Upload user-provided data.
- *
- * @param request Request instance with configured URL and user-provided HTTP body stream.
- * @param formData List of fields which should be sent as \c multipart/form-data fields.
- * @param filename Name with which uploaded file should be stored.
- * @param dataSize Actual size of uploaded data (passes by user only for stream-based uploads).
- * @param cipherKey Key which should be used to encrypt data before upload.
- * @param block Data upload completion block.
- */
-- (void)uploadWithRequest:(NSURLRequest *)request
-                 formData:(nullable NSArray<NSDictionary *> *)formData
-                 filename:(NSString *)filename
-                 dataSize:(NSUInteger)dataSize
-                cipherKey:(nullable NSString *)cipherKey
-               completion:(void(^)(NSError * _Nullable error))block;
 
 
 #pragma mark - Download data
 
-/**
- * @brief Download file from specified URL.
- *
- * @param remoteURL Remote file URL which should be used during download.
- * @param localURL Location on local file system where file should be stored.
- * @param cipherKey Key which should be used to decrypt data after download.
- * @param block Data download completion block.
- */
-- (void)downloadFileAtURL:(NSURL *)remoteURL
-                    toURL:(NSURL *)localURL
-            withCipherKey:(nullable NSString *)cipherKey
-               completion:(void(^)(NSURLRequest *request, NSURL * _Nullable location,
-                                   NSError * _Nullable error))block;
+/// Handle downloaded file from specified URL.
+///
+/// - Parameters:
+///   - url: Location on the local file system where file has been temporarily stored.
+///   - localURL: Location on the local file system where file should be stored.
+///   - cryptoModule: Crypto module which should be used to _decrypt_ downloaded file.
+///   - block Downloaded data processing completion block.
+- (void)handleDownloadedFileAtURL:(nullable NSURL *)url
+                     withStoreURL:(nullable NSURL *)localURL
+                     cryptoModule:(nullable id<PNCryptoProvider>)cryptoModule
+                       completion:(void(^)( NSURL * _Nullable location, NSError * _Nullable error))block;
 
 #pragma mark -
 

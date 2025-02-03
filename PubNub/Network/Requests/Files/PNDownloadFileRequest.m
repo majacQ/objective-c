@@ -1,53 +1,46 @@
-/**
- * @author Serhii Mamontov
- * @version 4.15.0
- * @since 4.15.0
- * @copyright © 2010-2020 PubNub, Inc.
- */
 #import "PNDownloadFileRequest+Private.h"
-#import "PNRequest+Private.h"
+#import "PNBaseRequest+Private.h"
+#import "PNTransportRequest.h"
+#import "PNFunctions.h"
 #import "PNHelpers.h"
 
 
 NS_ASSUME_NONNULL_BEGIN
 
-#pragma mark Protected interface declaration
+#pragma mark Private interface declaration
 
+/// `Download file` request private extension.
 @interface PNDownloadFileRequest ()
 
 
-#pragma mark - Information
+#pragma mark - Properties
 
-/**
- * @brief Unique \c file identifier which has been assigned during \c file upload.
- */
-@property (nonatomic, copy) NSString *identifier;
+/// Crypto module which should be used for downloaded data _decryption_.
+///
+/// This property allows setting up data _decryption_ using a different crypto module than the one set during **PubNub**
+/// client instance configuration.
+@property(strong, nullable, nonatomic) id<PNCryptoProvider> cryptoModule;
 
-/**
- * @brief Name of channel from which \c file with \c name should be downloaded.
- */
-@property (nonatomic, copy) NSString *channel;
+/// Unique `file` identifier which has been assigned during `file` upload.
+@property(copy, nonatomic) NSString *identifier;
 
-/**
- * @brief Name under which uploaded \c file is stored for \c channel.
- */
-@property (nonatomic, copy) NSString *name;
+/// Name of channel from which `file` with `name` should be downloaded.
+@property(copy, nonatomic) NSString *channel;
+
+/// Name under which uploaded `file` is stored for `channel`.
+@property(copy, nonatomic) NSString *name;
 
 
-#pragma mark - Initialization & Configuration
+#pragma mark - Initialization and configuration
 
-/**
- * @brief Initialize \c download \c file request.
- *
- * @param channel Name of channel from which \c file with \c name should be downloaded.
- * @param identifier Unique \c file identifier which has been assigned during \c file upload.
- * @param name Name under which uploaded \c file is stored for \c channel.
- *
- * @return Initialized and ready to use \c download \c file request.
- */
-- (instancetype)initWithChannel:(NSString *)channel
-                     identifier:(NSString *)identifier
-                           name:(NSString *)name;
+/// Initialize `file download` request instance.
+///
+/// - Parameters:
+///   - channel: Name of channel from which `file` with `name` should be downloaded.
+///   - identifier: Unique `file` identifier which has been assigned during `file` upload.
+///   - name: Name under which uploaded `file` is stored for `channel`.
+/// - Returns: Initialized `file download` request.
+- (instancetype)initWithChannel:(NSString *)channel identifier:(NSString *)identifier name:(NSString *)name;
 
 #pragma mark -
 
@@ -62,57 +55,40 @@ NS_ASSUME_NONNULL_END
 @implementation PNDownloadFileRequest
 
 
-#pragma mark - Information
+#pragma mark - Properties
 
 - (PNOperationType)operation {
     return PNDownloadFileOperation;
 }
 
-- (PNRequestParameters *)requestParameters {
-    PNRequestParameters *parameters = [super requestParameters];
+- (NSDictionary *)query {
+    NSMutableDictionary *query = [NSMutableDictionary new];
+    
+    if (self.arbitraryQueryParameters.count) [query addEntriesFromDictionary:self.arbitraryQueryParameters];
+    
+    return query.count ? query : nil;
+}
 
-    if (self.parametersError) {
-        return parameters;
-    }
+- (BOOL)responseAsFile {
+    return YES;
+}
 
-    if (self.channel.length) {
-        [parameters addPathComponent:[PNString percentEscapedString:self.channel]
-                      forPlaceholder:@"{channel}"];
-    } else {
-        self.parametersError = [self missingParameterError:@"channel" forObjectRequest:@"Request"];
-    }
-
-    if (self.identifier.length) {
-        [parameters addPathComponent:self.identifier forPlaceholder:@"{id}"];
-    } else {
-        self.parametersError = [self missingParameterError:@"identifier"
-                                          forObjectRequest:@"Request"];
-    }
-
-    if (self.name.length) {
-        [parameters addPathComponent:[PNString percentEscapedString:self.name]
-                      forPlaceholder:@"{name}"];
-    } else {
-        self.parametersError = [self missingParameterError:@"name" forObjectRequest:@"Request"];
-    }
-
-    return parameters;
+- (NSString *)path {
+    return PNStringFormat(@"/v1/files/%@/channels/%@/files/%@/%@",
+                          self.subscribeKey,
+                          [PNString percentEscapedString:self.channel],
+                          self.identifier,
+                          [PNString percentEscapedString:self.name]);
 }
 
 
 #pragma mark - Initialization & Configuration
 
-+ (instancetype)requestWithChannel:(NSString *)channel
-                        identifier:(NSString *)identifier
-                              name:(NSString *)name {
-    
++ (instancetype)requestWithChannel:(NSString *)channel identifier:(NSString *)identifier name:(NSString *)name {
     return [[self alloc] initWithChannel:channel identifier:identifier name:name];
 }
 
-- (instancetype)initWithChannel:(NSString *)channel
-                     identifier:(NSString *)identifier
-                           name:(NSString *)name {
-    
+- (instancetype)initWithChannel:(NSString *)channel identifier:(NSString *)identifier name:(NSString *)name {
     if ((self = [super init])) {
         _identifier = [identifier copy];
         _channel = [channel copy];
@@ -125,6 +101,17 @@ NS_ASSUME_NONNULL_END
 - (instancetype)init {
     [self throwUnavailableInitInterface];
 
+    return nil;
+}
+
+
+#pragma mark - Prepare
+
+- (PNError *)validate {
+    if (self.channel.length == 0) return [self missingParameterError:@"channel" forObjectRequest:@"Request"];
+    if (self.identifier.length == 0) return [self missingParameterError:@"identifier" forObjectRequest:@"Request"];
+    if (self.name.length == 0) return [self missingParameterError:@"name" forObjectRequest:@"Request"];
+    
     return nil;
 }
 

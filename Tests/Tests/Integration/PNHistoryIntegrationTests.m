@@ -35,6 +35,7 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-retain-cycles"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 
 #pragma mark - Setup / Tear down
@@ -57,6 +58,8 @@
 }
 
 - (PNConfiguration *)configurationForTestCaseWithName:(NSString *)name {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     PNConfiguration *configuration = [super configurationForTestCaseWithName:name];
     configuration.useRandomInitializationVector = [self.name rangeOfString:@"RandomIV"].location != NSNotFound;
     
@@ -72,7 +75,8 @@
         configuration.cipherKey = cipherKey;
         self.configurationRequestCounter++;
     }
-    
+#pragma clang diagnostic pop
+
     return configuration;
 }
 
@@ -98,10 +102,12 @@
     NSNumber *firstTimetoken = publishedMessages.firstObject[@"timetoken"];
     NSNumber *lastTimetoken = publishedMessages.lastObject[@"timetoken"];
     NSDictionary *checkedMessage = publishedMessages[checkedMessageIdx];
-    
-    
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel
                         withCompletion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -132,9 +138,11 @@
     NSNumber *middleMinusOneTimetoken = publishedMessages[1][@"timetoken"];
     NSNumber *middleTimetoken = publishedMessages[2][@"timetoken"];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel start:middleTimetoken end:middleMinusOneTimetoken limit:101
                                reverse:YES withCompletion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -162,9 +170,11 @@
     NSUInteger checkedMessageIdx = (NSUInteger)(expectedMessagesCount * 0.5f);
     NSDictionary *checkedMessage = publishedMessages[checkedMessageIdx];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel start:nil end:nil includeTimeToken:YES
                         withCompletion:^(PNHistoryResult *result, PNErrorStatus * status) {
@@ -192,9 +202,11 @@
                                                            usingClient:nil];
     NSDictionary *checkedMessage = publishedMessages[checkedMessageIdx];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel withMetadata:YES
                             completion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -213,6 +225,100 @@
     [self deleteHistoryForChannel:channel usingClient:nil];
 }
 
+- (void)testItShouldFetchHistoryForChannelWithoutCustomMessageTypeWhenIncludeCustomMessageTypeFlagIsSet {
+    NSString *channel = [self channelWithName:@"test-channel"];
+    NSString *expectedMessageType = @"test-message";
+    NSUInteger expectedMessagesCount = 4;
+    NSUInteger checkedMessageIdx = (NSUInteger)(expectedMessagesCount * 0.5f);
+
+    [self publishMessages:expectedMessagesCount
+                toChannel:channel
+    withCustomMessageType:expectedMessageType
+              usingClient:nil];
+
+    [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
+        PNHistoryFetchRequest *request = [PNHistoryFetchRequest requestWithChannel:channel];
+        request.includeCustomMessageType = YES;
+        [self.client fetchHistoryWithRequest:request completion:^(PNHistoryResult * result, PNErrorStatus * status) {
+            NSArray *fetchedMessages = result.data.messages;
+            XCTAssertNil(status);
+            XCTAssertNotNil(fetchedMessages);
+            XCTAssertNil(fetchedMessages[checkedMessageIdx][@"customMessageType"]);
+            XCTAssertEqual(result.operation, PNHistoryOperation);
+
+            handler();
+        }];
+    }];
+
+    [self deleteHistoryForChannel:channel usingClient:nil];
+}
+
+- (void)testItShouldFetchHistoryForChannelWithCustomMessageTypeWhenIncludeCustomMessageTypeAndIncludeMessageActionsFlagIsSet {
+    NSString *channel = [self channelWithName:@"test-channel"];
+    NSString *expectedMessageType = @"test-message";
+    NSUInteger expectedMessagesCount = 4;
+    NSUInteger expectedActionsCount = 4;
+    NSUInteger checkedMessageIdx = (NSUInteger)(expectedMessagesCount * 0.5f);
+
+    NSArray<NSDictionary *> *publishedMessages = [self publishMessages:expectedMessagesCount
+                                                             toChannel:channel
+                                                 withCustomMessageType:expectedMessageType
+                                                           usingClient:nil];
+    NSArray<NSNumber *> *timetokens = [publishedMessages valueForKey:@"timetoken"];
+    [self addActions:expectedActionsCount toMessages:timetokens inChannel:channel usingClient:nil];
+
+    [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
+        PNHistoryFetchRequest *request = [PNHistoryFetchRequest requestWithChannel:channel];
+        request.includeCustomMessageType = YES;
+        request.includeMessageActions = YES;
+        [self.client fetchHistoryWithRequest:request completion:^(PNHistoryResult * result, PNErrorStatus * status) {
+            NSArray *fetchedMessages = result.data.messages;
+            XCTAssertNil(status);
+            XCTAssertNotNil(fetchedMessages);
+            XCTAssertNotNil(fetchedMessages[checkedMessageIdx][@"customMessageType"]);
+            XCTAssertEqualObjects(fetchedMessages[checkedMessageIdx][@"customMessageType"], expectedMessageType);
+            XCTAssertEqual(result.operation, PNHistoryWithActionsOperation);
+
+            handler();
+        }];
+    }];
+
+    [self deleteHistoryForChannel:channel usingClient:nil];
+}
+
+- (void)testItShouldFetchHistoryForChannelsWithCustomMessageTypeWhenIncludeCustomMessageTypeFlagIsSet {
+    NSArray<NSString *> *channels = @[
+        [self channelWithName:@"test-channel-alpha"],
+        [self channelWithName:@"test-channel-beta"]
+    ];
+    NSString *expectedMessageType = @"test-message";
+    NSUInteger expectedMessagesCount = 4;
+    NSUInteger checkedMessageIdx = (NSUInteger)(expectedMessagesCount * 0.5f);
+
+    [self publishMessages:expectedMessagesCount
+               toChannels:channels
+    withCustomMessageType:expectedMessageType
+              usingClient:nil];
+
+    [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
+        PNHistoryFetchRequest *request = [PNHistoryFetchRequest requestWithChannels:channels];
+        request.includeCustomMessageType = YES;
+        request.limit = 25;
+        [self.client fetchHistoryWithRequest:request completion:^(PNHistoryResult * result, PNErrorStatus * status) {
+            NSDictionary<NSString *,NSArray<NSDictionary *> *> *fetchedMessages = result.data.channels;
+            XCTAssertNil(status);
+            XCTAssertNotNil(fetchedMessages);
+            XCTAssertEqualObjects(fetchedMessages[channels.lastObject][checkedMessageIdx][@"customMessageType"],
+                                  expectedMessageType);
+            XCTAssertEqual(result.operation, PNHistoryForChannelsOperation);
+
+            handler();
+        }];
+    }];
+
+    [self deleteHistoryForChannels:channels usingClient:nil];
+}
+
 - (void)testItShouldFetchHistoryForChannelWithEncryptedMessagesAndDecryptRandomIV {
     NSString *channel = [self channelWithName:@"test-channel"];
     NSUInteger expectedMessagesCount = 4;
@@ -224,9 +330,11 @@
     
     [self waitTask:@"waitForDistribution" completionFor:1.f];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertTrue(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-        
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel start:nil end:nil includeMetadata:YES
                         withCompletion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -253,9 +361,11 @@
                                                              toChannel:channel
                                                            usingClient:nil];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-        
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel start:nil end:nil includeMetadata:YES
                         withCompletion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -286,9 +396,11 @@
     
     [self waitTask:@"waitForDistribution" completionFor:1.f];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertTrue(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [consumerClient historyForChannel:channel start:nil end:nil includeMessageActions:YES
                            withCompletion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -297,7 +409,7 @@
             XCTAssertTrue(status.isError);
             XCTAssertEqual(status.operation, PNHistoryOperation);
             XCTAssertEqual(status.category, PNDecryptionErrorCategory);
-            NSArray *encryptedMessages = status.associatedObject[@"channels"][channel];
+            NSArray *encryptedMessages = ((PNHistoryFetchData *)status.associatedObject).channels[channel];
             XCTAssertNotNil(status.associatedObject);
             XCTAssertNotNil(encryptedMessages);
             XCTAssertNotEqualObjects(encryptedMessages[halfSize][@"message"], publishedMessages[halfSize][@"message"]);
@@ -320,9 +432,11 @@
                                                              toChannel:channel
                                                            usingClient:nil];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [consumerClient historyForChannel:channel start:nil end:nil includeMessageActions:YES
                            withCompletion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -331,7 +445,7 @@
             XCTAssertTrue(status.isError);
             XCTAssertEqual(status.operation, PNHistoryOperation);
             XCTAssertEqual(status.category, PNDecryptionErrorCategory);
-            NSArray *encryptedMessages = status.associatedObject[@"channels"][channel];
+            NSArray *encryptedMessages = ((PNHistoryFetchData *)status.associatedObject).channels[channel];
             XCTAssertNotNil(status.associatedObject);
             XCTAssertNotNil(encryptedMessages);
             XCTAssertNotEqualObjects(encryptedMessages[halfSize][@"message"], publishedMessages[halfSize][@"message"]);
@@ -357,9 +471,11 @@
     NSNumber *middleMinusOneTimetoken = publishedMessages[halfSize - 1][@"timetoken"];
     NSNumber *middleTimetoken = publishedMessages[halfSize][@"timetoken"];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel start:nil end:nil limit:halfSize
                       includeTimeToken:YES withCompletion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -416,9 +532,11 @@
     NSNumber *middleMinusOneTimetoken = publishedMessages[halfSize - 1][@"timetoken"];
     NSNumber *middleTimetoken = publishedMessages[halfSize][@"timetoken"];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel start:nil end:nil limit:halfSize reverse:YES
                       includeTimeToken:YES withCompletion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -499,9 +617,11 @@
     NSNumber *lastTimetoken = publishedMessages.lastObject[@"timetoken"];
     NSDictionary *checkedMessage = publishedMessages[checkedMessageIdx];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.history()
             .channel(channel)
@@ -514,7 +634,7 @@
                 XCTAssertEqual([result.data.start compare:firstTimetoken], NSOrderedSame);
                 XCTAssertEqual([result.data.end compare:lastTimetoken], NSOrderedSame);
                 XCTAssertEqual(result.operation, PNHistoryOperation);
-                
+
                 handler();
             });
     }];
@@ -539,9 +659,11 @@
                                                  inChannel:channel
                                                usingClient:nil];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         [self.client historyForChannel:channel withMessageActions:YES
                             completion:^(PNHistoryResult *result, PNErrorStatus *status) {
@@ -599,9 +721,11 @@
                                                  inChannel:channel
                                                usingClient:nil];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.history()
             .channel(channel)
@@ -656,9 +780,10 @@
                 .includeMessageActions(YES)
                 .performWithCompletion(^(PNHistoryResult *result, PNErrorStatus *status) {
                     XCTAssertTrue(status.isError);
-                    XCTAssertEqual(status.operation, PNHistoryOperation);
+                    XCTAssertEqual(status.operation, PNHistoryForChannelsOperation);
                     XCTAssertEqual(status.category, PNBadRequestCategory);
                     XCTAssertEqual(status.statusCode, 400);
+                    handler();
                 });
         } @catch (NSException *exception) {
             handler();
@@ -679,9 +804,11 @@
     NSArray<NSDictionary *> *messages1 = publishedMessages[channels.firstObject];
     NSArray<NSDictionary *> *messages2 = publishedMessages[channels.lastObject];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.history()
             .channels(channels)
@@ -718,9 +845,11 @@
     
     [self publishMessages:expectedMessagesCount toChannels:channels usingClient:nil];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.history()
             .channels(channels)
@@ -746,9 +875,11 @@
     
     [self publishMessages:expectedMessagesCount toChannels:channels usingClient:nil];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.history()
             .channels(channels)
@@ -786,9 +917,11 @@
     NSNumber *channel2FirstTimetoken = messages2.firstObject[@"timetoken"];
     NSNumber *channel2LastTimetoken = messages2.lastObject[@"timetoken"];
     
-    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     XCTAssertFalse(self.client.currentConfiguration.shouldUseRandomInitializationVector);
-    
+#pragma clang diagnostic pop
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.history()
             .channels(channels)
@@ -884,7 +1017,7 @@
             XCTAssertNil(status);
             XCTAssertEqualObjects(result.data.messages, @[]);
             XCTAssertEqual(result.operation, PNHistoryOperation);
-            
+
             handler();
         }];
     }];
@@ -922,7 +1055,7 @@
             XCTAssertEqual(fetchedMessages.count, halfSize);
             XCTAssertEqualObjects(fetchedMessages.firstObject, publishedMessages[halfSize][@"message"]);
             XCTAssertEqualObjects(fetchedMessages.lastObject, publishedMessages.lastObject[@"message"]);
-            
+
             handler();
         }];
     }];
@@ -960,7 +1093,7 @@
             XCTAssertEqual(fetchedMessages.count, halfSize);
             XCTAssertEqualObjects(fetchedMessages.firstObject, publishedMessages.firstObject[@"message"]);
             XCTAssertEqualObjects(fetchedMessages.lastObject, publishedMessages[halfSize - 1][@"message"]);
-            
+
             handler();
         }];
     }];
@@ -998,7 +1131,7 @@
             XCTAssertEqual(fetchedMessages.count, 2);
             XCTAssertEqualObjects(fetchedMessages.firstObject, publishedMessages.firstObject[@"message"]);
             XCTAssertEqualObjects(fetchedMessages.lastObject, publishedMessages.lastObject[@"message"]);
-            
+
             handler();
         }];
     }];
@@ -1044,7 +1177,7 @@
             XCTAssertEqual(fetchedMessages.count, publishedMessages.count);
             XCTAssertEqualObjects(fetchedMessages.firstObject, publishedMessages.firstObject[@"message"]);
             XCTAssertEqualObjects(fetchedMessages.lastObject, publishedMessages.lastObject[@"message"]);
-            
+
             handler();
         }];
     }];

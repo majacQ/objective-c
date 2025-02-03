@@ -14,62 +14,81 @@ FOUNDATION_EXPORT double PubNubVersionNumber;
 FOUNDATION_EXPORT const unsigned char PubNubVersionString[];
 
 
-// Protocols
-#import "PNEventsListener.h"
+#pragma mark - Categories
 
 // Categories
-#import "NSURLSessionConfiguration+PNConfiguration.h"
+#import <PubNub/NSURLSessionConfiguration+PNConfiguration.h>
 
-// Data objects
-#import "PNPresenceChannelGroupHereNowResult.h"
-#import "PNChannelGroupClientStateResult.h"
-#import "PNPresenceChannelHereNowResult.h"
-#import "PNPresenceGlobalHereNowResult.h"
-#import "PNFetchChannelsMetadataResult.h"
-#import "PNChannelGroupChannelsResult.h"
-#import "PNFetchMessageActionsResult.h"
-#import "PNAPNSEnabledChannelsResult.h"
-#import "PNSetChannelMetadataStatus.h"
-#import "PNChannelClientStateResult.h"
-#import "PNManageMembershipsStatus.h"
-#import "PNClientStateUpdateStatus.h"
-#import "PNFetchUUIDMetadataResult.h"
-#import "PNPresenceWhereNowResult.h"
-#import "PNAddMessageActionStatus.h"
-#import "PNAcknowledgmentStatus.h"
-#import "PNClientStateGetResult.h"
-#import "PNChannelGroupsResult.h"
-#import "PNMessageCountResult.h"
-#import "PNClientInformation.h"
-#import "PNSubscriberResults.h"
-#import "PNSubscribeStatus.h"
-#import "PNPublishStatus.h"
-#import "PNHistoryResult.h"
-#import "PNSignalStatus.h"
-#import "PNServiceData.h"
-#import "PNErrorStatus.h"
-#import "PNTimeResult.h"
-#import "PNKeychain.h"
-#import "PNResult.h"
-#import "PNStatus.h"
+
+#pragma mark - Data types
+
+#import <PubNub/PNRequestRetryConfiguration.h>
+#import <PubNub/PNConfiguration.h>
+#import <PubNub/PNFunctions.h>
+#import <PubNub/PNLock.h>
+
+
+#pragma mark - Base modules
+
+#import <PubNub/PNJSONSerialization.h>
+#import <PubNub/PNJSONCoder.h>
+
+
+#pragma mark - Transport module
+
+#import <PubNub/PNTransportConfiguration.h>
+#import <PubNub/PNBaseOperationData.h>
+#import <PubNub/PNBaseRequest.h>
+
+
+#pragma mark - Cryptor module
+
+// Cryptor implementations
+#import <PubNub/PNCryptorInputStream.h>
+#import <PubNub/PNEncryptedStream.h>
+#import <PubNub/PNAESCBCCryptor.h>
+#import <PubNub/PNLegacyCryptor.h>
+#import <PubNub/PNEncryptedData.h>
+#import <PubNub/PNCryptoModule.h>
+
+
+#pragma mark - Shared protocols
+
+#import <PubNub/PNTransportResponse.h>
+#import <PubNub/PNObjectSerializer.h>
+#import <PubNub/PNTransportRequest.h>
+#import <PubNub/PNEventsListener.h>
+#import <PubNub/PNJSONSerializer.h>
+#import <PubNub/PNCryptoProvider.h>
+#import <PubNub/PNTransport.h>
+#import <PubNub/PNCryptor.h>
+#import <PubNub/PNEncoder.h>
+#import <PubNub/PNDecoder.h>
+#import <PubNub/PNCodable.h>
+
+#pragma mark - API
 
 // API
-#import "PubNub+Core.h"
-#import "PubNub+MessageActions.h"
-#import "PubNub+ChannelGroup.h"
-#import "PubNub+Subscribe.h"
-#import "PNConfiguration.h"
-#import "PubNub+Presence.h"
-#import "PubNub+Publish.h"
-#import "PubNub+History.h"
-#import "PubNub+Objects.h"
-#import "PubNub+Files.h"
-#import "PubNub+State.h"
-#import "PNErrorCodes.h"
-#import "PNStructures.h"
-#import "PubNub+APNS.h"
-#import "PubNub+Time.h"
-#import "PNLLogger.h"
-#import "PNResult.h"
-#import "PNStatus.h"
-#import "PNAES.h"
+#import <PubNub/PubNub+Core.h>
+#import <PubNub/PubNub+MessageActions.h>
+#import <PubNub/PubNub+ChannelGroup.h>
+#import <PubNub/PNOperationResult.h>
+#import <PubNub/PubNub+Subscribe.h>
+#import <PubNub/PubNub+Presence.h>
+#import <PubNub/PubNub+Publish.h>
+#import <PubNub/PubNub+History.h>
+#import <PubNub/PubNub+Objects.h>
+#import <PubNub/PubNub+Files.h>
+#import <PubNub/PubNub+State.h>
+#import <PubNub/PNStructures.h>
+#import <PubNub/PubNub+APNS.h>
+#import <PubNub/PubNub+Time.h>
+#import <PubNub/PubNub+PAM.h>
+#import <PubNub/PNLLogger.h>
+#import <PubNub/PNStatus.h>
+#import <PubNub/PNAES.h>
+
+
+#pragma mark - Errors
+
+#import <PubNub/PNError.h>

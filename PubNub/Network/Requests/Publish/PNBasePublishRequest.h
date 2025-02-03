@@ -1,72 +1,60 @@
-#import "PNStructures.h"
-#import "PNRequest.h"
+#import <PubNub/PNBaseRequest.h>
 
 
 NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark Interface declaration
 
-/**
- * @brief Base class for all 'Publish' API endpoints which has shared query options.
- *
- * @author Serhii Mamontov
- * @version 4.15.0
- * @since 4.15.0
- * @copyright © 2010-2020 PubNub, Inc.
- */
-@interface PNBasePublishRequest : PNRequest
+/// General request for all `Publish` API endpoints.
+@interface PNBasePublishRequest : PNBaseRequest
 
 
-#pragma mark - Information
+#pragma mark - Properties
 
-/**
- * @brief Arbitrary percent encoded query parameters which should be sent along with original API call.
- */
-@property (nonatomic, nullable, strong) NSDictionary *arbitraryQueryParameters;
+/// Arbitrary percent encoded query parameters which should be sent along with original API call.
+@property(strong, nullable, nonatomic) NSDictionary *arbitraryQueryParameters;
 
-/**
- * @brief Whether \c published data should be stored and available with history API or not.
- */
-@property (nonatomic, assign, getter = shouldStore) BOOL store;
+/// Serialized `NSDictionary` with values which should be used by **PubNub** service to filter messages.
+@property(strong, nullable, nonatomic, readonly) NSString *preparedMetadata;
 
-/**
- * @brief \a NSDictionary with values which should be used by \b PubNub service to filter messages.
- */
-@property (nonatomic, nullable, strong) NSDictionary *metadata;
+/// Whether message should be replicated across the PubNub Real-Time Network and sent simultaneously to all subscribed
+///clients on a channel.
+@property(assign, nonatomic, getter = shouldReplicate) BOOL replicate;
 
-/**
- * @brief Name of channel to which message should be published.
- */
-@property (nonatomic, readonly, copy) NSString *channel;
+/// User-specified message type.
+///
+/// > Important: string limited by **3**-**50** case-sensitive alphanumeric characters with only `-` and `_` special
+/// characters allowed.
+@property(copy, nullable, nonatomic) NSString *customMessageType;
 
-/**
- * @brief Message which will be published.
- *
- * @discussion Provided object will be serialized into JSON (\a NSString, \a NSNumber, \a NSArray, \a NSDictionary) string
- * before pushing to \b PubNub service. If client has been configured with cipher key message will be encrypted as well.
- */
-@property (nonatomic, nullable, strong) id message;
+/// Whether `published` data should be stored and available with history API or not.
+@property(assign, nonatomic, getter = shouldStore) BOOL store;
 
-/**
- * @brief How long message should be stored in channel's storage. Pass \b 0 store message according to retention.
- */
-@property (nonatomic, assign) NSUInteger ttl;
+/// `NSDictionary` with values which should be used by **PubNub** service to filter messages.
+@property(strong, nullable, nonatomic) NSDictionary *metadata;
 
-/**
- * @brief Whether request is repeatedly sent to retry after recent failure.
- */
-@property (nonatomic, assign) BOOL retried;
+/// Name of channel to which message should be published.
+@property(copy, nonatomic, readonly) NSString *channel;
+
+/// Message which will be published.
+///
+/// Provided object will be serialized into JSON (`NSString`, `NSNumber`, `NSArray`, `NSDictionary`) string before
+/// pushing to the **PubNub** network. If client has been configured with cipher key message will be encrypted as well.
+@property(strong, nullable, nonatomic) id message;
+
+/// How long message should be stored in channel's storage. Pass \b 0 store message according to retention.
+@property(assign, nonatomic) NSUInteger ttl;
+
+/// Whether request is repeatedly sent to retry after recent failure.
+@property(assign, nonatomic) BOOL retried;
 
 
-#pragma mark - Initialization & Configuration
+#pragma mark - Initialization and Configuration
 
-/**
- * @brief Forbids request initialization.
- *
- * @throws Interface not available exception and requirement to use provided constructor method.
- *
- * @return Initialized request.
- */
+/// Forbids request initialization.
+///
+/// - Throws: Interface not available exception and requirement to use provided constructor method.
+/// - Returns: Initialized request.
 - (instancetype)init NS_UNAVAILABLE;
 
 #pragma mark -

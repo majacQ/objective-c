@@ -1,3 +1,106 @@
+## v5.7.1
+February 03 2025
+
+#### Fixed
+- Fix issue which caused a crash because of an attempt to access nullified request cancellation block.
+
+## v5.7.0
+November 18 2024
+
+#### Added
+- Add custom message type support for the following APIs: publish, signal, share file, subscribe and history.
+
+## v5.6.1
+July 08 2024
+
+#### Fixed
+- Fix issue because of which wrong request timeout has been used.
+- Fix issue with `PNSubscribeCursorData` which should have an optional `region` to handle user timetoken in received real-time messages.
+
+## v5.6.0
+June 27 2024
+
+#### Added
+- Decoder to map server response directly to the data models.
+- Configurable request objects require less convenience methods to interact with PubNub REST API.
+- Network layer rewritten as module.
+
+## v5.5.0
+June 12 2024
+
+#### Added
+- Adjusting to FCM HTTP v1 API.
+
+## v5.4.1
+April 30 2024
+
+#### Fixed
+- Match `include` folder content to the `import` in source code.
+
+## v5.4.0
+April 16 2024
+
+#### Added
+- Adding PrivacyInfo.xcprivacy.
+
+## v5.3.0
+December 19 2023
+
+#### Added
+- Add the ability to set automatic request retry configuration in `PNConfiguration`.
+
+## v5.2.1
+October 30 2023
+
+#### Modified
+- Update license information.
+
+## v5.2.0
+October 16 2023
+
+#### Added
+- Add a crypto module with a set of implemented cryptors.
+
+#### Modified
+- Mark `uuid` as deprecated configuration property.
+- Fix warnings after project settings update.
+
+## v5.1.3
+December 13 2022
+
+#### Fixed
+- Serialise access to previously created session configuration objects from different threads.
+
+## v5.1.2
+December 09 2022
+
+#### Fixed
+- Fix issue because of which message de-duplication code leaked memory.
+
+## v5.1.1
+September 06 2022
+
+#### Fixed
+- Fix the issue because of which `PNFilesManager` leaked each time when PubNub client was created.
+
+## v5.1.0
+March 11 2022
+
+#### Added
+- Make it possible to use PubNub Objective-C SDK using SPM.
+
+## v5.0.0
+January 12 2022
+
+#### Modified
+- BREAKING CHANGES: Disable automated `uuid` generation and make it mandatory to specify during PNConfiguration instance creation.
+
+## v4.17.0
+September 22 2021
+
+#### Added
+- Add method which allow to set or parse auth token.
+
 ## [v4.16.2](https://github.com/pubnub/objective-c/releases/tag/v4.16.2)
 June 9 2021
 

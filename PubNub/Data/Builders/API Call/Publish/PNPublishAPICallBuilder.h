@@ -1,5 +1,5 @@
-#import "PNAPICallBuilder.h"
-#import "PNStructures.h"
+#import <PubNub/PNAPICallBuilder.h>
+#import <PubNub/PNStructures.h>
 
 
 NS_ASSUME_NONNULL_BEGIN
@@ -41,6 +41,16 @@ NS_ASSUME_NONNULL_BEGIN
  * @since 4.5.4
  */
 @property (nonatomic, readonly, strong) PNPublishAPICallBuilder * (^message)(id message);
+
+/**
+ * @brief User-specified message type.
+ *
+ * \b Important: string limited by \b 3 - \b 50 case-sensitive alphanumeric characters with only \c - and \c _ special
+ * characters allowed.
+ *
+ * @return API call configuration builder.
+ */
+@property (nonatomic, readonly, strong) PNPublishAPICallBuilder * (^customMessageType)(NSString *customMessageType);
 
 /**
  * @brief Message metadata addition block.
@@ -139,7 +149,10 @@ NS_ASSUME_NONNULL_BEGIN
  *
  * @since 4.8.2
  */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wincompatible-property-type"
 @property (nonatomic, readonly, strong) PNPublishAPICallBuilder * (^queryParam)(NSDictionary *params);
+#pragma clang diagnostic pop
 
 #pragma mark -
 

@@ -1,7 +1,7 @@
 #import <Foundation/Foundation.h>
-#import "PNAPNSNotificationPayload.h"
-#import "PNMPNSNotificationPayload.h"
-#import "PNFCMNotificationPayload.h"
+#import <PubNub/PNAPNSNotificationPayload.h>
+#import <PubNub/PNMPNSNotificationPayload.h>
+#import <PubNub/PNFCMNotificationPayload.h>
 
 
 NS_ASSUME_NONNULL_BEGIN
@@ -94,7 +94,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * @brief Forbids payload builder initialization.
  *
- * @throws Interface not available exception and requirement to use provided constructor method.
+ * @throw Interface not available exception and requirement to use provided constructor method.
  *
  * @return Initialized builder.
  */

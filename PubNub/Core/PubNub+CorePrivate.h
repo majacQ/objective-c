@@ -1,211 +1,190 @@
 #import "PubNub+Core.h"
+#import <PubNub/PNJSONSerialization.h>
+#import <PubNub/PNTransportResponse.h>
+#import <PubNub/PNTransportRequest.h>
+#import <PubNub/PNTransport.h>
+#import <PubNub/PNJSONCoder.h>
+#import <PubNub/PNLock.h>
+#import "PNOperationDataParser.h"
+#import "PNBaseRequest+Private.h"
+#import "PNPrivateStructures.h"
+#import "PubNub+Deprecated.h"
 #import "PNPublishSequence.h"
-#import "PNRequest+Private.h"
 #import "PNStateListener.h"
 #import "PNFilesManager.h"
 #import "PNClientState.h"
 #import "PNSubscriber.h"
-#import "PNTelemetry.h"
 #import "PNHeartbeat.h"
 #import "PNLogMacro.h"
 
 
 #pragma mark Class forward
 
-@class PNRequestParameters, PNConfiguration, PNNetwork, PNResult, PNStatus;
+@class PNRequestParameters, PNConfiguration, PNOperationResult, PNStatus;
 
 
 NS_ASSUME_NONNULL_BEGIN
 
-/**
- * @brief \b PubNub client core extension which expose private fields and methods to support other
- * extensions.
- *
- * @discussion Core class manage client configuration as well as access to networking layer through
- * which passed request will be sent to \b PubNub service.
- *
- * @author Serhii Mamontov
- * @copyright © 2010-2019 PubNub, Inc.
- */
+#pragma mark - Types
+
+/// Request perform and parse completion block.
+///
+/// - Parameters:
+///   - request: Actual request which has been used to access remote origin resource.
+///   - response: Remote origin response with results of access to the resource.
+///   - path: Path to the temporarily downloaded file location.
+///   - result: Processed ``request`` response.
+typedef void(^PNParsedRequestCompletionBlock)(PNTransportRequest *,
+                                              id<PNTransportResponse>,
+                                              NSURL * _Nullable,
+                                              PNOperationDataParseResult * _Nullable);
+
+
+#pragma mark - Private interface declaration
+
+/// **PubNub** client core class private extension.
 @interface PubNub (Private)
 
 
 #pragma mark - Properties
 
-/**
- * @brief Current \b PubNub client configuration.
- */
-@property (nonatomic, readonly, copy) PNConfiguration *configuration;
-
-/**
- * @brief Unique instance identifier.
- *
- * @since 4.5.4
- */
-@property (nonatomic, readonly, copy) NSString *instanceID;
-
-/**
- * @brief Subscription loop manager.
- */
-@property (nonatomic, readonly, strong) PNSubscriber *subscriberManager;
-
-/**
- * @brief Files upload / download manager.
- *
- * @since 4.15.0
- */
-@property (nonatomic, readonly, strong) PNFilesManager *filesManager;
-
-/**
- * @brief Publish sequence manager.
- *
- * @since 4.5.2
- */
-@property (nonatomic, readonly, strong) PNPublishSequence *sequenceManager;
-
-/**
- * @brief Client's state manager to store user's state for chats and group.
- */
-@property (nonatomic, readonly, strong) PNClientState *clientStateManager;
-
-/**
- * @brief Subscribe event listeners manager.
- */
-@property (nonatomic, readonly, strong) PNStateListener *listenersManager;
-
-/**
- * @brief Client's presence heartbeat manager.
- */
-@property (nonatomic, readonly, strong) PNHeartbeat *heartbeatManager;
-
-/**
- * @brief Network manager configured to be used for 'subscription' API group with long-polling.
- */
-@property (nonatomic, strong, nullable) PNNetwork *subscriptionNetwork;
-
-/**
- * @brief Network manager configured to be used for 'non-subscription' API group.
- */
-@property (nonatomic, strong, nullable) PNNetwork *serviceNetwork;
-
-/**
- * @brief Client telemetry gather and publish manager.
- *
- * @since 4.6.2
- */
-@property (nonatomic, readonly, strong) PNTelemetry *telemetryManager;
-
-/**
- * @brief Recent client state (whether it was connected or not).
- */
+/// Recent client state (whether it was connected or not).
 @property (nonatomic, readonly, assign) PNStatusCategory recentClientStatus;
 
-/**
- * @brief Queue on which completion / processing blocks will be called.
- */
+/// Publish sequence manager.
+@property (nonatomic, readonly, strong) PNPublishSequence *sequenceManager;
+
+/// Client's state manager to store user's state for chats and group.
+@property (nonatomic, readonly, strong) PNClientState *clientStateManager;
+
+/// Subscribe event listeners manager.
+@property (nonatomic, readonly, strong) PNStateListener *listenersManager;
+
+/// Subscription loop manager.
+@property (nonatomic, readonly, strong) PNSubscriber *subscriberManager;
+
+/// JSON serializer.
+@property(strong, nonatomic, readonly) PNJSONSerialization *serializer;
+
+/// Queue on which completion / processing blocks will be called.
 @property (nonatomic, readonly, strong) dispatch_queue_t callbackQueue;
 
-/**
- * @brief Set of key/value pairs which is used in API endpoint path and common for all endpoints.
- *
- * @since 4.15.2
- */
-@property (nonatomic, readonly, strong) NSDictionary *defaultPathComponents;
+/// Client's presence heartbeat manager.
+@property (nonatomic, readonly, strong) PNHeartbeat *heartbeatManager;
 
-/**
- * @brief Set of key/value pairs which is used in API endpoint query and common for all endpoints.
- *
- * @since 4.15.2
- */
-@property (nonatomic, readonly, strong) NSDictionary *defaultQueryComponents;
+/// Current **PubNub** client configuration.
+@property (nonatomic, readonly, copy) PNConfiguration *configuration;
+
+/// Files upload / download manager.
+@property (nonatomic, readonly, strong) PNFilesManager *filesManager;
+
+/// Transport for subscription loop.
+@property (nonatomic, strong) id<PNTransport> subscriptionNetwork;
+
+/// Transport for service requests (non-subscribe).
+@property (nonatomic, strong) id<PNTransport> serviceNetwork;
+
+/// Unique instance identifier.
+@property (nonatomic, readonly, copy) NSString *instanceID;
+
+/// Data objects coder / decoder.
+@property(strong, nonatomic, readonly) PNJSONCoder *coder;
+
+/// Resources access lock.
+@property(strong, nonatomic) PNLock *lock;
 
 
-#pragma mark - Requests helper
+#pragma mark - Requests processing
 
-/**
- * @brief Perform network request.
- *
- * @param request Object which contain all required information to perform request.
- * @param block Request processing completion block.
- */
-- (void)performRequest:(PNRequest *)request withCompletion:(id)block;
+/// Perform network request.
+///
+/// - Parameters:
+///   - userRequest: Object which contain all required information to perform request.
+///   - parser: Pre-configured ``userRequest`` response parser.
+///   - block: Request processing completion block. 
+- (void)performRequest:(PNBaseRequest *)userRequest
+            withParser:(PNOperationDataParser *)parser
+            completion:(PNParsedRequestCompletionBlock)block;
 
+/// Perform network request.
+///
+/// - Parameters:
+///   - userRequest: Object which contain all required information to perform request.
+///   - block: Request processing completion block. Completion block can be one of: ``PNRequestCompletionBlock`` or
+///    `PNDownloadRequestCompletionBlock` types.
+- (void)performRequest:(PNBaseRequest *)userRequest withCompletion:(id)block;
 
-#pragma mark - Operation processing
+/// Create operation data parser.
+///
+/// - Parameters:
+///   - resultClass: Class of object which represents API result (for data fetching requests).
+///   - statusClass: Class of object which represents API request processing status (for non-data fetching requests) or
+///   error status data.
+/// - Returns: Ready to use operation data parser.
+- (PNOperationDataParser *)parserWithResult:(Class)resultClass status:(Class)statusClass;
 
-/**
- * @brief Compose request to \b PubNub network basing on operation type and passed \c parameters.
- *
- * @param operationType One of \b PNOperationType enum fields which represent type of operation
- *     which should be issued to \b PubNub network.
- * @param parameters Resource and query path fields wrapped into object.
- * @param block Operation processing completion block.
- */
-- (void)processOperation:(PNOperationType)operationType
-          withParameters:(PNRequestParameters *)parameters
-         completionBlock:(nullable id)block;
+/// Create operation data parser.
+///
+/// - Parameter statusClass: Class of object which represents API request processing status (for non-data fetching
+/// requests) or error status data.
+/// - Returns: Ready to use operation data parser.
+- (PNOperationDataParser *)parserWithStatus:(Class)statusClass;
 
-/**
- * @brief Compose request to \b PubNub network basing on operation type and passed \c parameters.
- *
- * @param operationType One of \b PNOperationType enum fields which represent type of operation
- *     which be issued to \b PubNub network.
- * @param parameters Resource and query path fields wrapped into object.
- * @param data Data which should be pushed to \b PubNub network.
- * @param block Operation processing completion block.
- */
-- (void)processOperation:(PNOperationType)operationType
-          withParameters:(PNRequestParameters *)parameters
-                    data:(nullable NSData *)data
-         completionBlock:(nullable id)block;
+/// Create operation data parser.
+///
+/// - Parameters:
+///   - resultClass: Class of object which represents API result (for data fetching requests).
+///   - statusClass: Class of object which represents API request processing status (for non-data fetching requests) or
+///   error status data.
+///   - cryptoModule: Crypto module which should be used for data processing.
+/// - Returns: Ready to use operation data parser.
+- (PNOperationDataParser *)parserWithResult:(Class)resultClass
+                                     status:(Class)statusClass
+                               cryptoModule:(nullable id<PNCryptoProvider>)cryptoModule;
 
-/**
- * @brief Compose objects which is used to provide default values for requests.
- *
- * @since 4.15.2
- */
-- (void)prepareRequiredParameters;
+/// Create operation data parser.
+///
+/// - Parameter statusClass: Class of object which represents API request processing status (for non-data fetching
+/// requests) or error status data.
+///   - cryptoModule: Crypto module which should be used for data processing.
+/// - Returns: Ready to use operation data parser.
+- (PNOperationDataParser *)parserWithStatus:(Class)statusClass
+                               cryptoModule:(nullable id<PNCryptoProvider>)cryptoModule;
 
 
 #pragma mark - Operation information
 
-/**
- * @brief Calculate actual size of packet for passed \c operationType which will be sent to
- * \b PubNub network.
- *
- * @param operationType One of \b PNOperationType enum fields which specify for what kind of
- *     operation packet size should be calculated.
- * @param parameters List of passed parameters which should be passed to URL builder.
- * @param data Data which can be pushed along with request to \b PubNub network if required.
- *
- * @return Size of the packet which include request string, host, headers and HTTP post body.
- */
+/// Calculate actual size of packet for passed `operationType` which will be sent to the **PubNub** network.
+///
+/// - Parameters:
+///   - operationType: One of the `PNOperationType` enum fields which specify for what kind of operation packet size
+///   should be calculated.
+///   - parameters: List of passed parameters which should be passed to URL builder.
+///   - data: Data which can be pushed along with request to the **PubNub** network if required.
+/// - Returns: Size of the packet which include request string, host, headers and HTTP post body.
 - (NSInteger)packetSizeForOperation:(PNOperationType)operationType
                      withParameters:(PNRequestParameters *)parameters
-                               data:(NSData *)data;
+                               data:(NSData *)data
+    DEPRECATED_MSG_ATTRIBUTE("This method deprecated and will be removed with the next major update.");
 
-/**
- * @brief Add available client information to object instance subclassed from \b PNResult
- * (\b PNStatus)
- *
- * @param result Reference on object which should be updated with client information.
- */
-- (void)appendClientInformation:(PNResult *)result;
+/// Add available client information to object instance subclassed from `PNOperationResult` (`PNStatus`).
+///
+/// - Parameter result: Reference on object which should be updated with client information.
+- (void)appendClientInformation:(PNOperationResult *)result;
 
 
 #pragma mark - Events notification
 
-/**
- * @brief Notify user about processing results by calling completion block with specified result and
- * status on callback queue.
- *
- * @param block Completion block which has been passed by user during API call.
- * @param result API request processing results.
- * @param status API request processing status (mostly reports about errors).
- */
+/// Notify user about processing results by calling completion block with specified result and status on callback queue.
+///
+/// - Parameters:
+///   - block: Completion block which has been passed by user during API call.
+///   - callingStatusBlock: Whether calling block with status object only or not.
+///   - result: API request processing results.
+///   - status: API request processing status (mostly reports about errors).
 - (void)callBlock:(nullable id)block
            status:(BOOL)callingStatusBlock
-       withResult:(nullable PNResult *)result
+       withResult:(nullable PNOperationResult *)result
         andStatus:(nullable PNStatus *)status;
 
 #pragma mark -

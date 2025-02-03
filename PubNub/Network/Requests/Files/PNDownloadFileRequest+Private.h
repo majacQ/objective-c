@@ -5,33 +5,26 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark Private interface declaration
 
-/**
- * @brief Private \c download \c file request extension to provide access to file information.
- *
- * @author Serhii Mamontov
- * @version 4.15.0
- * @since 4.15.0
- * @copyright © 2010-2020 PubNub, Inc.
- */
+/// `Download file` request private extension.
 @interface PNDownloadFileRequest (Private)
 
 
-#pragma mark - Information
+#pragma mark - Properties
 
-/**
- * @brief Unique \c file identifier which has been assigned during \c file upload.
- */
-@property (nonatomic, readonly, copy) NSString *identifier;
+/// Crypto module which should be used for uploaded data _encryption_.
+///
+/// This property allows setting up data _encryption_ using a different crypto module than the one set during **PubNub**
+/// client instance configuration.
+@property(strong, nullable, nonatomic) id<PNCryptoProvider> cryptoModule;
 
-/**
- * @brief Name of channel from which \c file with \c name should be downloaded.
- */
-@property (nonatomic, readonly, copy) NSString *channel;
+/// Unique `file` identifier which has been assigned during `file` upload.
+@property(copy, nonatomic, readonly) NSString *identifier;
 
-/**
- * @brief Name under which uploaded \c file is stored for \c channel.
- */
-@property (nonatomic, readonly, copy) NSString *name;
+/// Name of channel from which `file` with `name` should be downloaded.
+@property(copy, nonatomic, readonly) NSString *channel;
+
+/// Name under which uploaded `file` is stored for `channel`.
+@property(copy, nonatomic, readonly) NSString *name;
 
 #pragma mark -
 

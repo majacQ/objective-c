@@ -46,6 +46,7 @@ NS_ASSUME_NONNULL_END
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-retain-cycles"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 
 #pragma mark - Setup / Tear down
@@ -56,11 +57,15 @@ NS_ASSUME_NONNULL_END
 
 - (PNConfiguration *)configurationForTestCaseWithName:(NSString *)name {
     PNConfiguration *configuration = [super configurationForTestCaseWithName:name];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    configuration.cipherKey = self.cipherKey;
     
     if ([self.name pnt_includesString:@"Encrypt"] && ![self.name pnt_includesString:@"DontDecrypt"]) {
         configuration.cipherKey = self.cipherKey;
     }
-    
+#pragma clang diagnostic pop
+
     if ([self.name pnt_includesString:@"AuthKeyIsSet"]) {
         configuration.authKey = [self authForUser:@"serhii"];
     }
@@ -162,7 +167,7 @@ NS_ASSUME_NONNULL_END
         self.client.history()
             .channels(@[self.channel])
             .performWithCompletion(^(PNHistoryResult *result, PNErrorStatus *status) {
-                NSArray<NSDictionary *> *messages = result.data.channels[self.channel];
+                NSArray<NSDictionary *> *messages = result.data.messages;
                 XCTAssertFalse(status.isError);
                 XCTAssertNotNil(messages);
                 XCTAssertEqual(messages.count, 1);
@@ -174,6 +179,52 @@ NS_ASSUME_NONNULL_END
             });
     }];
     
+    [self waitTask:@"waitForDistribution" completionFor:1.f];
+}
+
+- (void)testItShouldSendFileFromDataWithCustomMessageTypeAndReceiveFromHistory {
+    NSString *fileName = [[NSUUID UUID].UUIDString stringByAppendingPathExtension:@"txt"];
+    NSData *data = [[NSUUID UUID].UUIDString dataUsingEncoding:NSUTF8StringEncoding];
+    NSString *excpectedMessageType = @"profile-image";
+
+
+    [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
+        PNSendFileRequest *request = [PNSendFileRequest requestWithChannel:self.channel fileName:fileName data:data];
+        request.customMessageType = excpectedMessageType;
+        [self.client sendFileWithRequest:request completion:^(PNSendFileStatus *status) {
+            XCTAssertFalse(status.isError);
+            XCTAssertTrue(status.data.fileUploaded);
+            XCTAssertNotNil(status.data.fileIdentifier);
+            XCTAssertNotNil(status.data.timetoken);
+            XCTAssertNotNil(status.data.fileName);
+            XCTAssertEqualObjects(status.data.fileName, fileName);
+            XCTAssertEqual(status.operation, PNSendFileOperation);
+            XCTAssertEqual(status.category, PNAcknowledgmentCategory);
+
+            handler();
+        }];
+    }];
+
+    [self waitTask:@"waitForDistribution" completionFor:2.f];
+
+    [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
+        PNHistoryFetchRequest *request = [PNHistoryFetchRequest requestWithChannels:@[self.channel]];
+        request.includeCustomMessageType = YES;
+
+        [self.client fetchHistoryWithRequest:request completion:^(PNHistoryResult *result, PNErrorStatus *status) {
+            NSArray<NSDictionary *> *messages = result.data.messages;
+            XCTAssertFalse(status.isError);
+            XCTAssertNotNil(messages);
+            XCTAssertEqual(messages.count, 1);
+            XCTAssertNotNil(messages.firstObject[@"uuid"]);
+            XCTAssertNotNil(messages.firstObject[@"messageType"]);
+            XCTAssertEqualObjects(messages.firstObject[@"messageType"], @4);
+            XCTAssertEqualObjects(messages.firstObject[@"customMessageType"], excpectedMessageType);
+
+            handler();
+        }];
+    }];
+
     [self waitTask:@"waitForDistribution" completionFor:1.f];
 }
 
@@ -346,8 +397,8 @@ NS_ASSUME_NONNULL_END
     PubNub *client1 = [self createPubNubForUser:@"serhii"];
     PubNub *client2 = [self createPubNubForUser:@"david"];
     client2.filterExpression = [NSString stringWithFormat:@"uuid == '%@'",
-                                client2.currentConfiguration.uuid];
-    
+                                client2.currentConfiguration.userID];
+
     [self subscribeClient:client2 toChannels:@[self.channel] withPresence:NO];
     
     
@@ -367,7 +418,7 @@ NS_ASSUME_NONNULL_END
         client1.files().sendFile(self.channel, fileName)
             .data(data)
             .message(expectedMessage)
-            .fileMessageMetadata(@{ @"uuid": client1.currentConfiguration.uuid })
+            .fileMessageMetadata(@{ @"uuid": client1.currentConfiguration.userID })
             .performWithCompletion(^(PNSendFileStatus *status) {
                 XCTAssertFalse(status.isError);
             });
@@ -385,8 +436,8 @@ NS_ASSUME_NONNULL_END
 
 - (void)testItShouldDownloadFileAndReceiveResultWithExpectedOperation {
     NSArray<NSDictionary *> *uploadedFiles = [self uploadFiles:1 toChannel:self.channel usingClient:nil];
-    NSString *expectedUUID = [@"uuid=" stringByAppendingString:self.client.currentConfiguration.uuid];
-    
+    NSString *expectedUUID = [@"uuid=" stringByAppendingString:self.client.currentConfiguration.userID];
+
     
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.files().downloadFile(self.channel, uploadedFiles.firstObject[@"id"], uploadedFiles.firstObject[@"name"])
@@ -562,7 +613,7 @@ NS_ASSUME_NONNULL_END
 - (void)testItShouldFetchFilesListWhenAuthKeyIsSet {
     NSArray<NSDictionary *> *uploadedFiles = [self uploadFiles:1 toChannel:self.channel usingClient:nil];
     NSString *expectedAuth = [@"auth=" stringByAppendingString:self.client.currentConfiguration.authKey];
-    NSString *expectedUUID = [@"uuid=" stringByAppendingString:self.client.currentConfiguration.uuid];
+    NSString *expectedUUID = [@"uuid=" stringByAppendingString:self.client.currentConfiguration.userID];
     
     
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
@@ -619,7 +670,7 @@ NS_ASSUME_NONNULL_END
                 XCTAssertFalse(status.isError);
                 XCTAssertEqual(result.data.files.count, limit);
                 XCTAssertEqual(result.data.count, limit);
-                XCTAssertNotNil(result.data.next);
+                XCTAssertNil(result.data.next);
                 
                 for (PNFile *file in files) {
                     XCTAssertFalse([fetchedFilesIdentifiers containsObject:file.identifier]);

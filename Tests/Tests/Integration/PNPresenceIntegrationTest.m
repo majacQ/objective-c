@@ -27,6 +27,7 @@ NS_ASSUME_NONNULL_END
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-retain-cycles"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 
 #pragma mark - Setup / Tear down
@@ -77,8 +78,8 @@ NS_ASSUME_NONNULL_END
             
             for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                 NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
-                
+                NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
+
                 XCTAssertEqual(((NSNumber *)channelInformation[@"occupancy"]).unsignedIntegerValue, 1);
                 XCTAssertEqualObjects(channelInformation[@"uuids"], @[@{ @"uuid": clientUUID }]);
             }
@@ -119,7 +120,7 @@ NS_ASSUME_NONNULL_END
 
             for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                 NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
+                NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
 
                 XCTAssertEqual(((NSNumber *)channelInformation[@"occupancy"]).unsignedIntegerValue, 1);
                 XCTAssertEqualObjects(channelInformation[@"uuids"], @[clientUUID]);
@@ -166,7 +167,7 @@ NS_ASSUME_NONNULL_END
 
             for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                 NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
+                NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
                 NSDictionary *channelParticipant = channelInformation[@"uuids"][0];
                 
                 XCTAssertEqualObjects(channelParticipant[@"uuid"], clientUUID);
@@ -189,7 +190,7 @@ NS_ASSUME_NONNULL_END
  *  'ItShouldFetchGlobalHereWithParticipantsOccupancyWhenOccupancyVerbosityIsSet.json' should
  *  be modified after cassette recording. Find first place where presence fetch API usage and copy paste
  *  4 entries which belong to it. For new entries change 'id' field to be different from source. For
- *  original response entry change status code to 404.
+ *  original response entry change `Content-Type` to `text/html`.
  */
 - (void)testItShouldFetchGlobalHereNowWithParticipantsOccupancyWhenOccupancyVerbosityIsSet {
     if ([self shouldSkipTestWithManuallyModifiedMockedResponse]) {
@@ -272,8 +273,8 @@ NS_ASSUME_NONNULL_END
                 
                 for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                     NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                    NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
-                    
+                    NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
+
                     XCTAssertEqual(((NSNumber *)channelInformation[@"occupancy"]).unsignedIntegerValue, 1);
                     XCTAssertEqualObjects(channelInformation[@"uuids"], @[@{ @"uuid": clientUUID }]);
                 }
@@ -318,7 +319,7 @@ NS_ASSUME_NONNULL_END
             for (NSUInteger clientIdx = 0; clientIdx < clients.count; clientIdx++) {
                 PubNub *client = clients[clientIdx];
                 
-                XCTAssertTrue([uuids containsObject:@{ @"uuid": client.currentConfiguration.uuid }]);
+                XCTAssertTrue([uuids containsObject:@{ @"uuid": client.currentConfiguration.userID }]);
             }
             
             handler();
@@ -357,7 +358,7 @@ NS_ASSUME_NONNULL_END
             for (NSUInteger clientIdx = 0; clientIdx < clients.count; clientIdx++) {
                 PubNub *client = clients[clientIdx];
                 
-                XCTAssertTrue([uuids containsObject:client.currentConfiguration.uuid]);
+                XCTAssertTrue([uuids containsObject:client.currentConfiguration.userID]);
             }
 
             handler();
@@ -397,7 +398,7 @@ NS_ASSUME_NONNULL_END
             XCTAssertNotNil(uuids);
             
             for (NSUInteger clientIdx = 0; clientIdx < clients.count; clientIdx++) {
-                NSString *clientUUID = clients[clientIdx].currentConfiguration.uuid;
+                NSString *clientUUID = clients[clientIdx].currentConfiguration.userID;
                 NSDictionary *userInformation = nil;
                 
                 for (NSDictionary *information in uuids) {
@@ -493,7 +494,10 @@ NS_ASSUME_NONNULL_END
     
     [self waitTask:@"waitForDistribution" completionFor:(YHVVCR.cassette.isNewCassette ? 5.f : 0.f)];
     
-    
+    /**
+     void (^)(PNPresenceChannelHereNowResult *__strong, PNErrorStatus *__strong)' to parameter of type 'PNHereNowCompletionBlock  _Nonnull __strong' (aka 'void (^__strong)(PNPresenceHereNowResult * _Nullable __strong, PNErrorStatus * _Nullable __strong)
+     */
+
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.presence().hereNow()
             .channel(channel)
@@ -541,7 +545,7 @@ NS_ASSUME_NONNULL_END
 
                 for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                     NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                    NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
+                    NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
 
                     XCTAssertEqual(((NSNumber *)channelInformation[@"occupancy"]).unsignedIntegerValue, 1);
                     XCTAssertEqualObjects(channelInformation[@"uuids"], @[@{ @"uuid": clientUUID }]);
@@ -590,7 +594,7 @@ NS_ASSUME_NONNULL_END
 
             for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                 NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
+                NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
 
                 XCTAssertEqual(((NSNumber *)channelInformation[@"occupancy"]).unsignedIntegerValue, 1);
                 XCTAssertEqualObjects(channelInformation[@"uuids"], @[@{ @"uuid": clientUUID }]);
@@ -638,7 +642,7 @@ NS_ASSUME_NONNULL_END
 
             for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                 NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
+                NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
 
                 XCTAssertEqual(((NSNumber *)channelInformation[@"occupancy"]).unsignedIntegerValue, 1);
                 XCTAssertEqualObjects(channelInformation[@"uuids"], @[clientUUID]);
@@ -691,7 +695,7 @@ NS_ASSUME_NONNULL_END
 
             for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                 NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
+                NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
                 NSDictionary *channelParticipant = channelInformation[@"uuids"][0];
                 
                 XCTAssertEqualObjects(channelParticipant[@"uuid"], clientUUID);
@@ -809,8 +813,8 @@ NS_ASSUME_NONNULL_END
                 
                 for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                     NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                    NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
-                    
+                    NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
+
                     XCTAssertEqual(((NSNumber *)channelInformation[@"occupancy"]).unsignedIntegerValue, 1);
                     XCTAssertEqualObjects(channelInformation[@"uuids"], @[@{ @"uuid": clientUUID }]);
                 }
@@ -859,7 +863,7 @@ NS_ASSUME_NONNULL_END
 
                 for (NSUInteger channelIdx = 0; channelIdx < channels.count; channelIdx++) {
                     NSDictionary *channelInformation = fetchedChannels[channels[channelIdx]];
-                    NSString *clientUUID = clients[channelIdx].currentConfiguration.uuid;
+                    NSString *clientUUID = clients[channelIdx].currentConfiguration.userID;
 
                     XCTAssertEqual(((NSNumber *)channelInformation[@"occupancy"]).unsignedIntegerValue, 1);
                     XCTAssertEqualObjects(channelInformation[@"uuids"], @[@{ @"uuid": clientUUID }]);
@@ -891,7 +895,7 @@ NS_ASSUME_NONNULL_END
     
     
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
-        [self.client whereNowUUID:self.client.currentConfiguration.uuid
+        [self.client whereNowUUID:self.client.currentConfiguration.userID
                    withCompletion:^(PNPresenceWhereNowResult *result, PNErrorStatus *status) {
             
             NSArray<NSString *> *fetchedChannels = result.data.channels;
@@ -950,7 +954,7 @@ NS_ASSUME_NONNULL_END
     
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.presence().whereNow()
-            .uuid(self.client.currentConfiguration.uuid)
+            .uuid(self.client.currentConfiguration.userID)
             .performWithCompletion(^(PNPresenceWhereNowResult *result, PNErrorStatus *status) {
                 NSArray<NSString *> *fetchedChannels = result.data.channels;
                 XCTAssertNil(status);
@@ -992,7 +996,7 @@ NS_ASSUME_NONNULL_END
     
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.presence().whereNow()
-            .uuid(self.client.currentConfiguration.uuid)
+            .uuid(self.client.currentConfiguration.userID)
             .performWithCompletion(^(PNPresenceWhereNowResult *result, PNErrorStatus *status) {
                 XCTAssertEqual(result.data.channels.count, channels.count);
                 
@@ -1145,7 +1149,7 @@ NS_ASSUME_NONNULL_END
     
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.presence().whereNow()
-            .uuid(self.client.currentConfiguration.uuid)
+            .uuid(self.client.currentConfiguration.userID)
             .performWithCompletion(^(PNPresenceWhereNowResult *result, PNErrorStatus *status) {
                 XCTAssertEqual(result.data.channels.count, 0);
                 
@@ -1261,7 +1265,7 @@ NS_ASSUME_NONNULL_END
             .performWithCompletion(^(PNPresenceChannelGroupHereNowResult *result, PNErrorStatus *status) {
                 NSDictionary<NSString *, NSDictionary *> *fetchedChannels = result.data.channels;
                 NSArray<NSDictionary *> *uuids = fetchedChannels[channels.firstObject][@"uuids"];
-                NSDictionary *fetchedState = uuids.firstObject[self.client.currentConfiguration.uuid];
+                NSDictionary *fetchedState = uuids.firstObject[self.client.currentConfiguration.userID];
                 XCTAssertNil(status);
                 XCTAssertNotNil(fetchedState);
                 XCTAssertEqualObjects(fetchedState, states[channelGroup]);
@@ -1373,7 +1377,7 @@ NS_ASSUME_NONNULL_END
     
     [self waitToCompleteIn:self.testCompletionDelay codeBlock:^(dispatch_block_t handler) {
         self.client.presence().whereNow()
-            .uuid(self.client.currentConfiguration.uuid)
+            .uuid(self.client.currentConfiguration.userID)
             .performWithCompletion(^(PNPresenceWhereNowResult *result, PNErrorStatus *status) {
                 XCTAssertEqual(result.data.channels.count, 0);
                 

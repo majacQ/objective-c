@@ -8,11 +8,16 @@ reports/
 # Tests
 ##################
 tests-configuration.json
+Features/
+PubNub Tests.xcworkspace
 
 ## Build generated
+PubNub Example.xcworkspace
 build/
 DerivedData
 Framework/Products
+for-upload
+Tests/Results
 
 ## Various settings
 *.pbxuser
@@ -45,6 +50,7 @@ xcuserdata/
 #
 Pods/
 Podfile.lock
+!Tests/Podfile.lock
 
 # Carthage
 #
@@ -73,3 +79,7 @@ Icon?
 ehthumbs.db
 Thumbs.db
 .idea/
+
+# GitHub Actions #
+##################
+.github/.release

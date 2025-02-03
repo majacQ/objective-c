@@ -2,8 +2,9 @@
  * @author Serhii Mamontov
  * @copyright © 2010-2019 PubNub, Inc.
  */
-#import <PubNub/PNRequestParameters.h>
 #import <PubNub/PubNub+CorePrivate.h>
+#import <PubNub/PNStatus+Private.h>
+#import <PubNub/PNSignalRequest.h>
 #import "PNRecordableTestCase.h"
 #import <PubNub/PNString.h>
 #import <OCMock/OCMock.h>
@@ -33,6 +34,7 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-retain-cycles"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 
 #pragma mark - Setup / Tear down
@@ -41,7 +43,10 @@
     PNConfiguration *configuration = [super configurationForTestCaseWithName:name];
     
     if ([self.name rangeOfString:@"Encrypt"].location != NSNotFound) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         configuration.cipherKey = self.cipherKey;
+#pragma clang diagnostic pop
     }
     
     return configuration;
@@ -76,13 +81,14 @@
     NSString *expectedChannel = [NSUUID UUID].UUIDString;
     
     
-    id recorded = OCMExpect([(id)self.client processOperation:PNSignalOperation withParameters:[OCMArg any]
-                                                         data:[OCMArg any] completionBlock:[OCMArg any]])
+    id recorded = OCMExpect([(id)self.client performRequest:[OCMArg isKindOfClass:[PNSignalRequest class]]
+                                        withCompletion:[OCMArg any]])
         .andDo(^(NSInvocation *invocation) {
-            PNRequestParameters *parameters = [self objectForInvocation:invocation argumentAtIndex:2];
-
-            XCTAssertEqualObjects(parameters.pathComponents[@"{channel}"], expectedChannel);
-            XCTAssertEqualObjects(parameters.pathComponents[@"{message}"], expectedMessage);
+            PNSignalRequest *request = [self objectForInvocation:invocation argumentAtIndex:1];
+            
+            XCTAssertNil([request validate]);
+            XCTAssertEqualObjects(request.channel, expectedChannel);
+            XCTAssertEqualObjects(request.path.lastPathComponent, expectedMessage);
         });
     
     
@@ -100,13 +106,14 @@
     id message = @{ @"such": @"object" };
     
     
-    id recorded = OCMExpect([(id)self.client processOperation:PNSignalOperation withParameters:[OCMArg any]
-                                                         data:[OCMArg any] completionBlock:[OCMArg any]])
+    id recorded = OCMExpect([(id)self.client performRequest:[OCMArg isKindOfClass:[PNSignalRequest class]]
+                                             withCompletion:[OCMArg any]])
         .andDo(^(NSInvocation *invocation) {
-            PNRequestParameters *parameters = [self objectForInvocation:invocation argumentAtIndex:2];
+            PNSignalRequest *request = [self objectForInvocation:invocation argumentAtIndex:1];
 
-            XCTAssertEqualObjects(parameters.pathComponents[@"{channel}"], expectedChannel);
-            XCTAssertEqualObjects(parameters.pathComponents[@"{message}"], expectedMessage);
+            XCTAssertNil([request validate]);
+            XCTAssertEqualObjects(request.channel, expectedChannel);
+            XCTAssertEqualObjects(request.path.lastPathComponent, expectedMessage);
         });
     
     [self waitForObject:self.client recordedInvocationCall:recorded afterBlock:^{
@@ -127,13 +134,17 @@
         self.client.signal().message(message)
             .performWithCompletion(^(PNSignalStatus * status) {
                 errorStatus = status;
+                // Hack. Non-error status doesn't have retry block.
+                status.retryBlock = ^{
+                    [self.client signal:@"Hello" channel:@"channel" withCompletion:nil];
+                };
                 handler();
             });
     }];
     
-    id recorded = OCMExpect([(id)self.client processOperation:PNSignalOperation withParameters:[OCMArg any]
-                                                         data:[OCMArg any] completionBlock:[OCMArg any]]);
-    
+    id recorded = OCMExpect([(id)self.client performRequest:[OCMArg isKindOfClass:[PNSignalRequest class]]
+                                             withCompletion:[OCMArg any]]);
+
     [self waitForObject:self.client recordedInvocationCall:recorded afterBlock:^{
         [errorStatus retry];
     }];

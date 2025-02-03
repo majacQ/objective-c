@@ -25,6 +25,7 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-retain-cycles"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 
 #pragma mark - Setup / Tear down
@@ -63,7 +64,7 @@
                 XCTAssertNotNil(action);
                 XCTAssertEqualObjects(action.type, expectedType);
                 XCTAssertEqualObjects(action.value, expectedValue);
-                XCTAssertEqualObjects(action.uuid, self.client.uuid);
+                XCTAssertEqualObjects(action.uuid, self.client.userID);
                 XCTAssertEqualObjects(action.messageTimetoken, timetokens[0]);
                 XCTAssertNotNil(action.actionTimetoken);
                 XCTAssertNotEqual([action.debugDescription rangeOfString:@"actionTimetoken"].location, NSNotFound);
@@ -133,7 +134,7 @@
             XCTAssertNotNil(action);
             XCTAssertEqualObjects(action.type, expectedType);
             XCTAssertEqualObjects(action.value, expectedValue);
-            XCTAssertEqualObjects(action.uuid, client1.uuid);
+            XCTAssertEqualObjects(action.uuid, client1.userID);
             XCTAssertEqualObjects(action.messageTimetoken, timetokens.firstObject);
             XCTAssertNotNil(action.actionTimetoken);
             XCTAssertEqualObjects(event.data.event, @"added");
@@ -424,7 +425,7 @@
             *remove = YES;
             PNMessageAction *action = event.data.action;
             XCTAssertNotNil(action);
-            XCTAssertEqualObjects(action.uuid, client1.uuid);
+            XCTAssertEqualObjects(action.uuid, client1.userID);
             XCTAssertEqualObjects(action.messageTimetoken, timetokens.firstObject);
             XCTAssertNotNil(action.actionTimetoken);
             XCTAssertEqualObjects(event.data.event, @"removed");

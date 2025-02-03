@@ -1,9 +1,99 @@
 ---
 name: objective-c
 scm: github.com/pubnub/objective-c
-version: "4.16.2"
+version: "5.7.1"
 schema: 1
 changelog:
+  - date: 2025-02-03
+    version: v5.7.1
+    changes:
+      - type: bug
+        text: "Fix issue which caused a crash because of an attempt to access nullified request cancellation block."
+  - date: 2024-11-18
+    version: v5.7.0
+    changes:
+      - type: feature
+        text: "Add custom message type support for the following APIs: publish, signal, share file, subscribe and history."
+  - date: 2024-07-08
+    version: v5.6.1
+    changes:
+      - type: bug
+        text: "Fix issue because of which wrong request timeout has been used."
+      - type: bug
+        text: "Fix issue with `PNSubscribeCursorData` which should have an optional `region` to handle user timetoken in received real-time messages."
+  - date: 2024-06-27
+    version: v5.6.0
+    changes:
+      - type: feature
+        text: "Decoder to map server response directly to the data models."
+      - type: feature
+        text: "Configurable request objects require less convenience methods to interact with PubNub REST API."
+      - type: feature
+        text: "Network layer rewritten as module."
+  - date: 2024-06-12
+    version: v5.5.0
+    changes:
+      - type: feature
+        text: "Adjusting to FCM HTTP v1 API."
+  - date: 2024-04-30
+    version: v5.4.1
+    changes:
+      - type: bug
+        text: "Match `include` folder content to the `import` in source code."
+  - date: 2024-04-16
+    version: v5.4.0
+    changes:
+      - type: feature
+        text: "Adding PrivacyInfo.xcprivacy."
+  - date: 2023-12-19
+    version: v5.3.0
+    changes:
+      - type: feature
+        text: "Add the ability to set automatic request retry configuration in `PNConfiguration`."
+  - date: 2023-10-30
+    version: v5.2.1
+    changes:
+      - type: improvement
+        text: "Update license information."
+  - date: 2023-10-16
+    version: v5.2.0
+    changes:
+      - type: feature
+        text: "Add a crypto module with a set of implemented cryptors."
+      - type: improvement
+        text: "Mark `uuid` as deprecated configuration property."
+      - type: improvement
+        text: "Fix warnings after project settings update."
+  - date: 2022-12-13
+    version: v5.1.3
+    changes:
+      - type: bug
+        text: "Serialise access to previously created session configuration objects from different threads."
+  - date: 2022-12-09
+    version: v5.1.2
+    changes:
+      - type: bug
+        text: "Fix issue because of which message de-duplication code leaked memory."
+  - date: 2022-09-06
+    version: v5.1.1
+    changes:
+      - type: bug
+        text: "Fix issue because of which `PNFilesManager` leaked each time when PubNub client created."
+  - date: 2022-03-11
+    version: v5.1.0
+    changes:
+      - type: feature
+        text: "Make it possible to use PubNub Objective-C SDK using SPM."
+  - date: 2022-01-12
+    version: v5.0.0
+    changes:
+      - type: improvement
+        text: "BREAKING CHANGES: Disable automated `uuid` generation and make it mandatory to specify during PNConfiguration instance creation."
+  - date: 2021-09-22
+    version: v4.17.0
+    changes:
+      - type: feature
+        text: "Add method which allow to set or parse auth token."
   -
     changes:
       -
@@ -462,7 +552,7 @@ changelog:
         text: "Fixed issue because of which new 'connected' presence API wasn't able to 'disconnect' user."
         type: bug
       -
-        text: "Fixed behavior during unsubscribe - connect event won't fire after user 'disconnectec', because there is no new channels about which listeners should be notified."
+        text: "Fixed behavior during unsubscribe - connect event won't fire after user 'disconnected', because there is no new channels about which listeners should be notified."
         type: improvement
     date: 2018-02-01
     version: v4.7.6
@@ -750,7 +840,7 @@ changelog:
         text: "added automatic heartbeat interval using formula and heartbeat value for calculated value."
         type: improvement
       -
-        text: "added 'channel' and 'subscription' properties to represent channel from which event arrived and actual data strean name which is used by PubNub client for subscription."
+        text: "added 'channel' and 'subscription' properties to represent channel from which event arrived and actual data stream name which is used by PubNub client for subscription."
         type: feature
       -
         text: "deprecated 'actualChannel' and 'subscribedChannel' in favor of 'channel' and 'subscription' (properties still available, but will be eventually will be completelly removed)."
@@ -806,7 +896,7 @@ changelog:
   -
     changes:
       -
-        text: "fixed podspec dependency version format compatibiliyty with CocoaPods 0.39."
+        text: "fixed podspec dependency version format compatibility with CocoaPods 0.39."
         type: bug
     date: 2016-05-17
     version: v4.3.3
@@ -826,7 +916,7 @@ changelog:
         text: "fixed issue with PNNumber on 32bit system, when passed NSNumber instance created from unix-timestamp multiplied on 10000000."
         type: bug
       -
-        text: "fixed message content descryption in case if it has been sent along with mobile push payload."
+        text: "fixed message content decryption in case if it has been sent along with mobile push payload."
         type: bug
       -
         text: "mobile push payload removed from received message."
@@ -851,7 +941,7 @@ changelog:
         text: "added generics to collection properties and arguments."
         type: feature
       -
-        text: "added nulability annotations."
+        text: "added null-ability annotations."
         type: improvement
       -
         text: "updated tests."
@@ -869,7 +959,7 @@ changelog:
         text: "fixed script responsible for module map update in built frameworks."
         type: bug
       -
-        text: "fixed 'Universal Startic Frameork (iOS)' to use correct platform."
+        text: "fixed 'Universal Static Framework (iOS)' to use correct platform."
         type: bug
       -
         text: "added missing files to Mac Framework."
@@ -879,7 +969,7 @@ changelog:
   -
     changes:
       -
-        text: "changed way how heartbeat state notification is set. Now it can be specified in heartbeatNotificationOptions bitfield property using PNHeartbeatNotificationOptions options."
+        text: "changed way how heartbeat state notification is set. Now it can be specified in heartbeatNotificationOptions bit field property using PNHeartbeatNotificationOptions options."
         type: improvement
     date: 2016-02-09
     version: v4.2.7
@@ -933,7 +1023,7 @@ changelog:
   -
     changes:
       -
-        text: "fixed cient state cache issue because of which channel group state itself get updated even if state has been changed for one."
+        text: "fixed client state cache issue because of which channel group state itself get updated even if state has been changed for one."
         type: bug
     date: 2015-12-10
     version: v4.2.1
@@ -949,7 +1039,7 @@ changelog:
         text: "added stringified representation for category and operation fields."
         type: improvement
       -
-        text: "removed client initialisation code which affected PNLogger configuration."
+        text: "removed client initialization code which affected PNLogger configuration."
         type: improvement
       -
         text: "fixed Mac OSX target and scripts for dynamic framework creation."
@@ -966,7 +1056,7 @@ changelog:
   -
     changes:
       -
-        text: "adjusted Base64 decoding settings which will allow to decode encrypted messages from some clients which changed base64 encoding algorithms."
+        text: "adjusted Base64 decoding settings which will allow to decode encrypted messages from some clients which changed Base64 encoding algorithms."
         type: bug
     date: 2015-11-20
     version: v4.1.3
@@ -1126,7 +1216,7 @@ changelog:
         text: "added 'associatedObject' field to PNErrorStatus (for now only for decryption error on live feed)."
         type: improvement
       -
-        text: "in case of decryption error only status object will arrive to lisetner (‐client:didReceiveMessage: won't be called)."
+        text: "in case of decryption error only status object will arrive to listener (‐client:didReceiveMessage: won't be called)."
         type: improvement
       -
         text: "fixed logger levels manipulation."
@@ -1151,6 +1241,9 @@ changelog:
     date: 2015-06-30
     version: v4.0.0
 features:
+  access:
+    - ACCESS-PARSE-TOKEN
+    - ACCESS-SET-TOKEN
   channel-groups:
     - CHANNEL-GROUPS-ADD-CHANNELS
     - CHANNEL-GROUPS-REMOVE-CHANNELS
@@ -1223,7 +1316,6 @@ features:
     - PUSH-TYPE-APNS
     - PUSH-TYPE-APNS2
     - PUSH-TYPE-FCM
-    - PUSH-TYPE-MPNS
   signal:
     - SIGNAL-SEND
   storage:
@@ -1281,9 +1373,9 @@ sdks:
         documentation: https://www.pubnub.com/docs/sdks/objective-c
         distributions:
           - distribution-type: source
-            distribution-repository: GitHub
-            package-name: PubNub Objective-C SDK
-            location: https://github.com/pubnub/objective-c
+            distribution-repository: GitHub release
+            package-name: PubNub.framework
+            location: https://github.com/pubnub/objective-c/archive/refs/tags/v5.7.1.zip
             supported-platforms:
               supported-operating-systems:
                 macOS:
@@ -1332,6 +1424,76 @@ sdks:
                     - arm64_32
                   target-devices:
                     - Apple Watch
+      - artifact-type: library
+        language: Objective-C
+        tier: 1
+        tags:
+          - Desktop
+          - Mobile
+        source-repository: https://github.com/pubnub/objective-c
+        documentation: https://www.pubnub.com/docs/sdks/objective-c
+        distributions:
+          - distribution-type: library
+            distribution-repository: GitHub release
+            package-name: PubNub.ios.xcframework.tar.gz
+            location: https://github.com/pubnub/objective-c/releases/download/v5.7.1/PubNub.ios.xcframework.tar.gz
+            supported-platforms:
+              supported-operating-systems:
+                iOS:
+                  runtime-version:
+                    - Objective-C 2.0
+                  minimum-os-version:
+                    - iOS 9.0
+                  maximum-os-version:
+                    - iOS 14.6
+                  target-architecture:
+                    - arm64
+                    - armv7
+                  target-devices:
+                    - iPhone
+                    - iPad
+          - distribution-type: library
+            distribution-repository: GitHub release
+            package-name: PubNub.macos.framework.tar.gz
+            location: https://github.com/pubnub/objective-c/releases/download/v5.7.1/PubNub.macos.framework.tar.gz
+            supported-platforms:
+              supported-operating-systems:
+                macOS:
+                  runtime-version:
+                    - Objective-C 2.0
+                  minimum-os-version:
+                    - OS X 10.11
+                  maximum-os-version:
+                    - macOS 11.4
+                  target-architecture:
+                    - arm64
+                    - x86_64
+          - distribution-type: library
+            distribution-repository: GitHub release
+            package-name: PubNub.tvos.xcframework.tar.gz
+            location: https://github.com/pubnub/objective-c/releases/download/v5.7.1/PubNub.tvos.xcframework.tar.gz
+            supported-platforms:
+              supported-operating-systems:
+                tvOS:
+                  runtime-version:
+                    - Objective-C 2.0
+                  minimum-os-version:
+                    - tvOS 10.0
+                  maximum-os-version:
+                    - tvOS 14.6
+                  target-architecture:
+                    - arm64
+                  target-devices:
+                    - Apple TV
+      - artifact-type: package
+        language: Objective-C
+        tier: 1
+        tags:
+          - Desktop
+          - Mobile
+        source-repository: https://github.com/pubnub/objective-c
+        documentation: https://www.pubnub.com/docs/sdks/objective-c
+        distributions:
           - distribution-type: package
             distribution-repository: CocoaPods
             package-name: PubNub
@@ -1344,7 +1506,7 @@ sdks:
                   minimum-os-version:
                     - OS X 10.11
                   maximum-os-version:
-                    - macOS 11.2
+                    - macOS 11.4
                   target-architecture:
                     - arm64
                     - x86_64
@@ -1354,7 +1516,7 @@ sdks:
                   minimum-os-version:
                     - iOS 9.0
                   maximum-os-version:
-                    - iOS 14.4
+                    - iOS 14.6
                   target-architecture:
                     - arm64
                     - armv7
@@ -1367,7 +1529,7 @@ sdks:
                   minimum-os-version:
                     - tvOS 10.0
                   maximum-os-version:
-                    - tvOS 14.4
+                    - tvOS 14.6
                   target-architecture:
                     - arm64
                   target-devices:
@@ -1378,93 +1540,12 @@ sdks:
                   minimum-os-version:
                     - watchOS 4.0
                   maximum-os-version:
-                    - watchOS 7.3
+                    - watchOS 7.5
                   target-architecture:
                     - armv7k
                     - arm64_32
                   target-devices:
                     - Apple Watch
-          - distribution-type: framework
-            distribution-repository: GitHub release
-            package-name: PubNub.catalyst.xcframework.tar.gz
-            location: https://github.com/pubnub/objective-c/releases/download/v4.16.2/PubNub.catalyst.xcframework.tar.gz
-            supported-platforms:
-              supported-operating-systems:
-                macOS:
-                  runtime-version:
-                    - Objective-C 2.0
-                  minimum-os-version:
-                    - macOS 11.0
-                  maximum-os-version:
-                    - macOS 11.2
-                  target-architecture:
-                    - arm64
-                    - x86_64
-                iOS:
-                  runtime-version:
-                    - Objective-C 2.0
-                  minimum-os-version:
-                    - iOS 9.0
-                  maximum-os-version:
-                    - iOS 14.4
-                  target-architecture:
-                    - arm64
-                    - armv7
-                  target-devices:
-                    - iPhone
-                    - iPad
-          - distribution-type: framework
-            distribution-repository: GitHub release
-            package-name: PubNub.macos.xcframework.tar.gz
-            location: https://github.com/pubnub/objective-c/releases/download/v4.16.2/PubNub.macos.xcframework.tar.gz
-            supported-platforms:
-              supported-operating-systems:
-                macOS:
-                  runtime-version:
-                    - Objective-C 2.0
-                  minimum-os-version:
-                    - OS X 10.11
-                  maximum-os-version:
-                    - macOS 11.2
-                  target-architecture:
-                    - arm64
-                    - x86_64
-          - distribution-type: framework
-            distribution-repository: GitHub release
-            package-name: PubNub.ios.xcframework.tar.gz
-            location: https://github.com/pubnub/objective-c/releases/download/v4.16.2/PubNub.ios.xcframework.tar.gz
-            supported-platforms:
-              supported-operating-systems:
-                iOS:
-                  runtime-version:
-                    - Objective-C 2.0
-                  minimum-os-version:
-                    - iOS 9.0
-                  maximum-os-version:
-                    - iOS 14.4
-                  target-architecture:
-                    - arm64
-                    - armv7
-                  target-devices:
-                    - iPhone
-                    - iPad
-          - distribution-type: framework
-            distribution-repository: GitHub release
-            package-name: PubNub.tvos.xcframework.tar.gz
-            location: https://github.com/pubnub/objective-c/releases/download/v4.16.2/PubNub.tvos.xcframework.tar.gz
-            supported-platforms:
-              supported-operating-systems:
-                tvOS:
-                  runtime-version:
-                    - Objective-C 2.0
-                  minimum-os-version:
-                    - tvOS 10.0
-                  maximum-os-version:
-                    - tvOS 14.4
-                  target-architecture:
-                    - arm64
-                  target-devices:
-                    - Apple TV
 supported-platforms:
   - version: PubNub Objective-C SDK
     platforms:
